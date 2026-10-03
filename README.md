@@ -50,6 +50,50 @@ Let's Connect saves each booking to a `bookings` table in Supabase. The team rea
 
 **On the admin page:** upcoming calls grouped by day, new (unconfirmed) bookings, past and cancelled ones; search and filters by service and budget; status (New, Confirmed, Completed, Cancelled); team notes; email, WhatsApp and Google Calendar links; CSV export of whatever is on screen. New bookings appear without a refresh. All times are in IST. It loads the latest 1,000 bookings.
 
+## Booking emails
+
+Every new booking is emailed to **mrktkings@gmail.com**: call time in IST (and the visitor's own time), name, company,
+email, phone with a WhatsApp link, services, budget and their message, plus "Open bookings" and "Add to Google Calendar"
+buttons. Pressing Reply writes straight to the lead.
+
+How it works: a Supabase Database Webhook calls the Edge Function in `supabase/functions/notify-booking/index.ts` for
+each new row in `bookings`, and the function sends the email through [Resend](https://resend.com). The function only
+acts on requests carrying the webhook's secret, so nobody else can make it send email.
+
+**One-time setup (about 15 minutes, all in the browser)**
+
+1. **Resend:** sign up at resend.com **with mrktkings@gmail.com**. (Until a domain is verified, Resend only delivers
+   to the address the account was made with, so this lets it start straight away with no DNS changes.) Then
+   API Keys → Create API Key (sending access) and copy it.
+2. **Make a webhook secret:** any long random string. In PowerShell:
+   `[guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N')`
+3. **Deploy the function:** Supabase → Edge Functions → Deploy a new function → Via Editor. Name it `notify-booking`,
+   replace the sample code with all of `supabase/functions/notify-booking/index.ts`, and deploy. Then, in the
+   function's settings, turn **off** JWT verification ("Verify JWT"): the function checks its own secret instead.
+4. **Add the secrets:** Edge Functions → Secrets. Add `RESEND_API_KEY` (from step 1) and `WEBHOOK_SECRET` (from
+   step 2). Optional: `NOTIFY_TO` (default `mrktkings@gmail.com`), `SITE_URL` (default
+   `https://mrktkings.com`).
+5. **Create the webhook:** Supabase → Database Webhooks (under Integrations in newer dashboards; enable the feature
+   if asked) → Create a new hook. Name `notify-booking`, table `bookings`, events **Insert** only, type
+   **Supabase Edge Functions** → `notify-booking`, method POST. Under HTTP Headers add `x-webhook-secret` with the
+   same value as `WEBHOOK_SECRET`. Create.
+6. **Test:** book a call on `/contact-us/`. The email should arrive within seconds. Check Spam the first time and
+   mark it "Not spam". If nothing arrives: Edge Functions → `notify-booking` → Logs shows why (wrong secret, bad API
+   key and so on).
+
+**Later, to send from your own address or to other inboxes:** in Resend, Domains → Add `mrktkings.com` and add the
+DNS records it shows. Once verified, set the secret `NOTIFY_FROM` to `MRKTKings Bookings <bookings@mrktkings.com>`.
+Emails then come from your domain and can go to any addresses, e.g. set the secret `NOTIFY_TO` to
+`mrktkings@gmail.com, someone@example.com` (no code change or redeploy needed).
+
+Prefer the command line? `npx supabase login`, then
+`npx supabase functions deploy notify-booking --no-verify-jwt --project-ref zluccebaexoxuwvluzpx` and
+`npx supabase secrets set RESEND_API_KEY=... WEBHOOK_SECRET=... --project-ref zluccebaexoxuwvluzpx`. The webhook
+(step 5) is still made in the dashboard.
+
+If an email ever fails, the booking itself is safe: it's saved before the email is attempted and always shows on
+`/admin/`.
+
 ## Media
 
 The services reel ships in two sizes: `services-reel-1080.mp4` (5.2 MB) for screens 1024px and wider and
@@ -93,8 +137,7 @@ Still to do:
 - [ ] Supabase: run `supabase/schema.sql` once more (it now also removes visitors' read access to the bookings table as
       a second safeguard), turn off "Allow new users to sign up", add the team as admins, then send a test booking and
       check it on `/admin/`.
-- [ ] Decide how the team hears about new bookings. Right now they only show up on `/admin/`; nobody is emailed. A
-      Supabase Database Webhook on inserts into `bookings` can post to Slack, Zapier/Make or an email service.
+- [ ] Set up booking emails to mrktkings@gmail.com (see Booking emails) and check the test booking's email arrives.
 - [ ] Confirm where "Careers" should go (`links.careers` in `content.ts`). It points at `mrktkings.com/careers/`, which
       won't exist once this site replaces the old one.
 - [ ] Confirm the Let's Connect budget ranges, call hours and working days in `content.ts`.

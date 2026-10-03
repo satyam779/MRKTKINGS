@@ -18,6 +18,10 @@
   --font-display: 'Unbounded', 'Arial Black', sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-accent: 'Instrument Serif', Georgia, serif;
+  /* Action buttons speak in the display face, like the nav and headlines. Choices (filters, form answers,
+     times) stay in the body face, which reads better for short data. */
+  --btn-font: 500 14px/1 var(--font-display);
+  --btn-tracking: 0.01em;
 
   --gutter: clamp(16px, 4vw, 48px);
   --max: 1320px;
@@ -151,9 +155,8 @@ section[id] {
   padding: 0 26px;
   border: 0;
   border-radius: 999px;
-  font-family: inherit;
-  font-weight: 600;
-  font-size: 15px;
+  font: var(--btn-font);
+  letter-spacing: var(--btn-tracking);
   white-space: nowrap;
   cursor: pointer;
   overflow: hidden;
@@ -390,7 +393,6 @@ section[id] {
   }
   .nav__btn {
     padding: 0 22px;
-    font-size: 15px;
   }
 }
 
@@ -636,9 +638,9 @@ section[id] {
   background: rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(8px);
   color: var(--text);
-  font: inherit;
+  font: var(--btn-font);
   font-size: 13px;
-  font-weight: 600;
+  letter-spacing: var(--btn-tracking);
   white-space: nowrap;
   cursor: pointer;
   pointer-events: auto;
@@ -970,9 +972,9 @@ section[id] {
   min-height: 44px;
   padding: 0 18px;
   border-radius: 999px;
-  font-family: var(--font-body);
-  font-weight: 600;
+  font: var(--btn-font);
   font-size: 13px;
+  letter-spacing: var(--btn-tracking);
 }
 @media (hover: hover) {
   .radial__arrows button:hover,
@@ -1011,9 +1013,10 @@ section[id] {
   gap: 6px;
   min-height: 32px;
   margin-top: 4px;
-  font-weight: 600;
-  font-size: 14px;
   transition: color 0.25s var(--ease-out);
+  font: var(--btn-font);
+  font-size: 13px;
+  letter-spacing: var(--btn-tracking);
 }
 .radial__link svg {
   transition: transform 0.3s var(--ease-out);
@@ -1345,10 +1348,10 @@ section[id] {
   gap: 10px;
   min-height: 48px;
   padding: 0 20px;
+  font: var(--btn-font);
+  letter-spacing: var(--btn-tracking);
   border-radius: 999px;
   border: 1px solid var(--border-strong);
-  font-size: 15px;
-  font-weight: 500;
   transition:
     border-color 0.2s,
     background-color 0.2s;
@@ -2364,9 +2367,10 @@ section[id] {
   gap: 4px;
   margin-top: 8px;
   min-height: 32px;
-  font-size: 14px;
-  font-weight: 600;
   color: var(--red);
+  font: var(--btn-font);
+  font-size: 13px;
+  letter-spacing: var(--btn-tracking);
 }
 @media (hover: hover) {
   .deliverables__link:hover {
@@ -3410,9 +3414,8 @@ section[id] {
   border-radius: 999px;
   background: #000;
   color: #fff;
-  font: inherit;
-  font-size: 15px;
-  font-weight: 600;
+  font: var(--btn-font);
+  letter-spacing: var(--btn-tracking);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: background-color 0.2s;
@@ -3482,9 +3485,9 @@ section[id] {
   border: 1px solid var(--tile-line);
   background: transparent;
   color: var(--text);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 500;
+  font: var(--btn-font);
+  font-size: 12.5px;
+  letter-spacing: var(--btn-tracking);
   cursor: pointer;
   transition:
     border-color 0.2s,
