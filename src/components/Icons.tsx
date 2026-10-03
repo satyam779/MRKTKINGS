@@ -29,19 +29,41 @@ export const ArrowUpRight = (p: IconProps) => (
   </Svg>
 )
 
-export const Users = (p: IconProps) => (
+export const ChevronLeft = (p: IconProps) => (
   <Svg {...p}>
-    <circle cx="9" cy="8" r="3.5" />
-    <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
-    <path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.5A6.5 6.5 0 0 1 21.5 20" />
+    <path d="m15 18-6-6 6-6" />
   </Svg>
 )
 
-export const Trophy = (p: IconProps) => (
+export const ChevronRight = (p: IconProps) => (
   <Svg {...p}>
-    <path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" />
-    <path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3" />
-    <path d="M12 14v4M8 21h8M9 18h6" />
+    <path d="m9 18 6-6-6-6" />
+  </Svg>
+)
+
+export const Play = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" />
+  </Svg>
+)
+
+export const Pause = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M8 5v14M16 5v14" strokeWidth={2.6} />
+  </Svg>
+)
+
+export const SoundOn = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4v-5Z" />
+    <path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" />
+  </Svg>
+)
+
+export const SoundOff = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4v-5Z" />
+    <path d="m16 9.5 5 5M21 9.5l-5 5" />
   </Svg>
 )
 

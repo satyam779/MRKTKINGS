@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { about } from '../../content'
+import { CrownCursor } from './CrownCursor'
 import { HeadTurn } from './HeadTurn'
 import { ScrambleIn } from './Scramble'
 
@@ -8,6 +9,7 @@ const ease = [0.215, 0.61, 0.355, 1] as const
 
 export function AboutHero() {
   const [entered, setEntered] = useState(false)
+  const ref = useRef<HTMLElement>(null)
 
   useEffect(() => {
     const t = window.setTimeout(() => setEntered(true), 800)
@@ -18,7 +20,7 @@ export function AboutHero() {
   const [right1, right2] = about.hero.right
 
   return (
-    <section className="about-hero" aria-labelledby="about-title">
+    <section ref={ref} className="about-hero" aria-labelledby="about-title">
       <div className="about-hero__ambient" style={{ backgroundImage: `url(${about.portraitBlur})` }} aria-hidden="true" />
       <div className="about-hero__dots" aria-hidden="true" />
       <div className="about-hero__watermark" aria-hidden="true">
@@ -69,6 +71,8 @@ export function AboutHero() {
           </p>
         </div>
       </motion.div>
+
+      <CrownCursor area={ref} />
     </section>
   )
 }

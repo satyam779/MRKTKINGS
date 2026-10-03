@@ -113,6 +113,10 @@ export function ProjectModal({ project, index, all, morph, onClose, onNavigate }
                 transition={{ duration: 0.6, ease }}
               >
                 <video
+                  // React only sets `muted` as a property; iOS also wants the attribute before autoplaying.
+                  ref={(v) => {
+                    if (v) v.defaultMuted = true
+                  }}
                   src={project.video}
                   poster={project.poster}
                   autoPlay

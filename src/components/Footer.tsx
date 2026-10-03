@@ -19,10 +19,11 @@ const year = new Date().getFullYear()
 // Lets the long address wrap after the @ on small screens instead of mid-word.
 const [before, after] = contact.email.split('@')
 
+// Links still set to '#' in content.ts are left out until their pages exist.
 const otherLinks = [
   { label: 'Privacy Policy', href: links.privacy },
   { label: 'Disclaimer', href: links.disclaimer },
-]
+].filter((l) => l.href !== '#')
 
 export function Footer() {
   return (
@@ -72,16 +73,18 @@ export function Footer() {
               ))}
             </ul>
           </nav>
-          <nav aria-label="Other links">
-            <h3>Other links</h3>
-            <ul>
-              {otherLinks.map((l) => (
-                <li key={l.label}>
-                  <a href={l.href}>{l.label}</a>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          {otherLinks.length > 0 && (
+            <nav aria-label="Other links">
+              <h3>Other links</h3>
+              <ul>
+                {otherLinks.map((l) => (
+                  <li key={l.label}>
+                    <a href={l.href}>{l.label}</a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )}
         </div>
 
         <p className="footer__wordmark" aria-hidden="true">

@@ -2,7 +2,7 @@ import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion
 import type { MotionValue } from 'framer-motion'
 import { useRef } from 'react'
 import { intro } from '../content'
-import { Reveal } from './Reveal'
+import { Reel } from './Reel'
 
 function Word({ word, range, progress }: { word: string; range: [number, number]; progress: MotionValue<number> }) {
   const opacity = useTransform(progress, range, [0.15, 1])
@@ -36,15 +36,7 @@ export function Intro() {
           )}
         </p>
 
-        <ul className="pillars" style={{ listStyle: 'none', padding: 0 }}>
-          {intro.pillars.map((p, i) => (
-            <Reveal as="li" key={p.title} className="pillar" delay={i * 0.1}>
-              <span className="pillar__num">0{i + 1}</span>
-              <h3>{p.title}</h3>
-              <p>{p.text}</p>
-            </Reveal>
-          ))}
-        </ul>
+        <Reel />
       </div>
     </section>
   )

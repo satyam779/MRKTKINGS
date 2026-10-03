@@ -5,8 +5,12 @@ export const media = {
   logo: { src: '/media/logo.webp', width: 585, height: 80 },
   crown: '/media/crown.svg',
   heroVideo: '/media/hero.mp4',
-  // Optional still frame shown while the video loads (add /public/media/hero-poster.webp).
-  heroPoster: undefined as string | undefined,
+  // Still frame shown while the video loads, or if the phone refuses to autoplay it.
+  heroPoster: '/media/hero-poster.webp' as string | undefined,
+  // Services reel under the intro statement (has sound; plays muted until the visitor unmutes).
+  reelVideo: '/media/MRKTKings_Services_Reel_v2.mp4',
+  // Still frame shown until the reel plays (phones on Data Saver start from this).
+  reelPoster: '/media/reel-poster.webp' as string | undefined,
 }
 
 export const links = {
@@ -19,6 +23,7 @@ export const links = {
   whatsapp: 'https://wa.me/+917204002430',
   linkedin: 'https://www.linkedin.com/company/mrktkings/',
   instagram: 'https://www.instagram.com/mrkt.kings',
+  // Footer "Other links" stay hidden while these are '#'; add the page URLs once they exist.
   privacy: '#',
   disclaimer: '#',
 }
@@ -35,11 +40,7 @@ export const intro = {
   tag: "Let's grow together",
   statement:
     "We're the powerhouse behind unstoppable D2C brands. Strategy, creativity, and data working as one.",
-  pillars: [
-    { title: 'Strategy', text: 'Every move starts with your numbers, your customer and your category.' },
-    { title: 'Creativity', text: 'Content and design that stop the scroll and make people remember you.' },
-    { title: 'Data', text: 'We measure what matters and put the budget behind what works.' },
-  ],
+  reelLabel: 'The MRKTKings reel',
 }
 
 // Copy from the live Services page (mrktkings.com/services). Order matches that page.
@@ -94,12 +95,18 @@ export const services = [
   },
 ]
 
+// Services hero (/services/). The last word of the headline cycles through `words`.
 export const servicesPage = {
-  eyebrow: 'Services',
-  title: ['Our Royal Suite', 'of Services'],
+  badge: 'Services · Creator-led marketing',
+  title: 'Our Royal Suite',
+  lead: 'built to',
+  words: ['convert.', 'trend.', 'scale.', 'last.'],
   intro:
-    "We're not your “post-and-pray” social agency and we don't do press fluff or influencer chaos. We're MRKTKings, a crew of creator-led marketers who actually get the internet. We play where culture happens, blending creators, strategy, and storytelling to make brands feel alive online.",
-  promise: 'No gimmicks. No bots. Just real collabs, real community, and results that last.',
+    "We're not your “post-and-pray” social agency. We're a crew of creator-led marketers who actually get the internet, blending creators, strategy, and storytelling to make brands feel alive online.",
+  promiseLabel: 'The MRKTKings promise',
+  promises: ['No gimmicks', 'No bots', 'Real collabs', 'Results that last'],
+  // Project tiles fanned out around the services in the hero collage (slugs from `projects`).
+  collageProjects: ['sereneve', 'ethnos', 'baindemer', 'my-natural-detox'],
 }
 
 export const whyUs = {
@@ -240,7 +247,7 @@ export const about = {
   name: 'Aamir Hussain',
   initials: 'AH',
   role: 'Founder',
-  // Blurred still behind the head turn. (about-portrait.webp is the page's og:image.)
+  // Blurred still behind the head turn. (The share image is /public/og-about.jpg, made from about-portrait.webp.)
   portraitBlur: '/media/about-portrait-blur.webp',
   // Cut-out head turn in the hero: frame 0 looks left, the last frame looks right.
   // `count` must match the frames in /public/media/about-turn (00.webp, 01.webp, ...).

@@ -1,7 +1,8 @@
 import { motion, useInView, useMotionValue, useReducedMotion, useSpring } from 'framer-motion'
 import type { PointerEvent } from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { Project } from '../../content'
+import { useAutoplay } from '../../useAutoplay'
 import { ArrowUpRight } from '../Icons'
 
 type Props = {
@@ -19,12 +20,7 @@ export function ProjectCard({ project, number, hidden, onOpen }: Props) {
   const [hover, setHover] = useState(false)
 
   // Reels play only while the card is mostly on screen (and never for reduced-motion users).
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-    if (inView && !reduce && !hidden) video.play().catch(() => {})
-    else video.pause()
-  }, [inView, reduce, hidden])
+  useAutoplay(videoRef, inView && !reduce && !hidden)
 
   // "View" badge that trails the pointer across the media.
   const mx = useMotionValue(0)

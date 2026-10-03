@@ -1,6 +1,7 @@
 import { motion, useInView, useReducedMotion, useScroll, useTransform } from 'framer-motion'
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { hero, media } from '../content'
+import { useAutoplay } from '../useAutoplay'
 import { ArrowUpRight } from './Icons'
 
 const ease = [0.22, 1, 0.36, 1] as const
@@ -17,12 +18,7 @@ export function Hero() {
   const contentOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0])
 
   // Only play the background video while it is on screen, and never for reduced-motion users.
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-    if (inView && !reduce) video.play().catch(() => {})
-    else video.pause()
-  }, [inView, reduce])
+  useAutoplay(videoRef, inView && !reduce)
 
   const lines = [...hero.lines.map((text) => ({ text, highlight: false })), { text: hero.highlight, highlight: true }]
 

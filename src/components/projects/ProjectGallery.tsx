@@ -20,8 +20,12 @@ export function ProjectGallery() {
   const open = openIndex >= 0 ? projects[openIndex] : null
 
   return (
-    <section className="gallery" aria-label="Projects">
+    <section className="gallery" aria-labelledby="gallery-heading">
       <div className="container">
+        {/* Keeps the outline H1 → H2 → H3 for screen readers; the cards' names are H3s. */}
+        <h2 id="gallery-heading" className="sr-only">
+          All projects
+        </h2>
         <div className="filters" role="group" aria-label="Filter projects by service">
           {filters.map((f) => (
             <button

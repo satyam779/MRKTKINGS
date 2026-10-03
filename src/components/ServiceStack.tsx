@@ -1,5 +1,6 @@
 import { motion, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion'
 import type { MotionValue } from 'framer-motion'
+import type { CSSProperties } from 'react'
 import { useEffect, useRef } from 'react'
 import { services } from '../content'
 import { useMediaQuery } from '../useMediaQuery'
@@ -48,7 +49,7 @@ function ServiceCard({ service, index, total, stackProgress, stacked }: CardProp
           className="stack__card"
           aria-labelledby={`${service.slug}-title`}
           style={{
-            top: stacked ? `${index * 22}px` : undefined,
+            top: stacked ? `calc(var(--stack-step) * ${index})` : undefined,
             ...(animated ? { x, y, rotate, opacity } : null),
             ...(animated && stacked ? { scale } : null),
           }}
@@ -86,8 +87,9 @@ function ServiceCard({ service, index, total, stackProgress, stacked }: CardProp
 
 export function ServiceStack() {
   const ref = useRef<HTMLElement>(null)
-  // Sticky stacking needs a tall enough screen to show a whole card; shorter screens get a simple list.
-  const stacked = useMediaQuery('(min-height: 760px)')
+  // Sticky stacking needs room to show a whole card. Phones use a compact card whose photo shrinks to fit,
+  // so they stack from 520px of visible height (small phones like the iPhone SE in Safari); the two-column desktop card needs 760px. Shorter screens get a list.
+  const stacked = useMediaQuery('(max-width: 899px) and (min-height: 520px), (min-width: 900px) and (min-height: 760px)')
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
 
   // The page renders client-side, so the browser can't find #service anchors on load; jump once mounted.
@@ -97,7 +99,12 @@ export function ServiceStack() {
   }, [])
 
   return (
-    <section ref={ref} className={`stack ${stacked ? 'stack--sticky' : ''}`} aria-label="Our services">
+    <section
+      ref={ref}
+      className={`stack ${stacked ? 'stack--sticky' : ''}`}
+      style={{ '--stack-count': services.length } as CSSProperties}
+      aria-label="Our services"
+    >
       <div className="container">
         {services.map((service, i) => (
           <ServiceCard
