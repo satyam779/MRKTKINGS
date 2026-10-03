@@ -67,8 +67,8 @@ const thumb: Variants = {
   exit: { opacity: 0, scale: 0.8, transition: { duration: 0.2 } },
 }
 
-// Opens as a ring of thumbnails you can spin like a wheel; picking one (or "Open" for the one at the top)
-// flies it into a big featured card, and "View all" fans everything back out into the ring.
+// Opens as a ring of thumbnails you can spin like a wheel; picking one flies it into a big featured
+// card, and "View all" fans everything back out into the ring.
 export function RadialCarousel({ items, label }: { items: RadialItem[]; label: string }) {
   const stageRef = useRef<HTMLDivElement>(null)
   const [sizes, setSizes] = useState<Sizes>(() => measure(560))
@@ -273,9 +273,6 @@ export function RadialCarousel({ items, label }: { items: RadialItem[]; label: s
               >
                 <span className="radial__now-title">{topItem.title}</span>
               </motion.div>
-              <button type="button" className="radial__open" onClick={() => close(top)}>
-                Open <ArrowUpRight size={16} />
-              </button>
             </motion.div>
           </motion.div>
         )}

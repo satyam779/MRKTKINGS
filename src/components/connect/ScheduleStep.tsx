@@ -1,8 +1,9 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import type { FormEvent, KeyboardEvent, MouseEvent, PointerEvent, RefObject } from 'react'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { booking, links } from '../../content'
-import { ArrowLeft, ChevronLeft, ChevronRight, Clock, WhatsApp } from '../Icons'
+import { ArrowLeft, ChevronLeft, ChevronRight, WhatsApp } from '../Icons'
+import type { SendStatus } from './ConnectPage'
 import type { Day, Details, Slot } from './booking'
 import {
   buildDays,
@@ -105,16 +106,22 @@ function useDragScroll(ref: RefObject<HTMLDivElement | null>) {
 type Props = {
   details: Details
   value: Date | null
+  // Start times (ms) already booked by someone else.
+  taken: ReadonlySet<number>
   onChange: (start: Date | null) => void
   onBack: () => void
   onSubmit: () => void
-  status: 'idle' | 'sending' | 'error'
+  status: SendStatus
   focusHeading: boolean
 }
 
-export function ScheduleStep({ details, value, onChange, onBack, onSubmit, status, focusHeading }: Props) {
-  // Worked out when the step opens, so slots that have just passed drop off.
-  const [days] = useState(buildDays)
+export function ScheduleStep({ details, value, taken, onChange, onBack, onSubmit, status, focusHeading }: Props) {
+  // Worked out when the step opens, so slots that have just passed drop off. Booked times are left out.
+  const [allDays] = useState(buildDays)
+  const days = useMemo(
+    () => (taken.size ? allDays.map((d) => ({ ...d, slots: d.slots.filter((s) => !taken.has(s.start.getTime())) })) : allDays),
+    [allDays, taken],
+  )
   const firstOpen = days.find((d) => d.slots.length > 0)
   const [dayKey, setDayKey] = useState(
     () => (value && days.find((d) => d.slots.some((s) => s.start.getTime() === value.getTime()))?.key) ?? firstOpen?.key,
@@ -217,23 +224,16 @@ export function ScheduleStep({ details, value, onChange, onBack, onSubmit, statu
 
   return (
     <form className="schedule" onSubmit={submit} noValidate>
-      <div className="schedule__head">
-        <div>
-          <h2 ref={headingRef} tabIndex={-1} className="booking__heading">
-            Pick a time
-          </h2>
-          <p className="schedule__meta">
-            <Clock size={16} /> {booking.callMinutes}-minute discovery call · {zoneNote}
-          </p>
-        </div>
-        <p className="schedule__who">
-          For <strong>{details.name.trim()}</strong>
-          {details.company.trim() && <> · {details.company.trim()}</>}
-          <button type="button" className="schedule__edit" onClick={onBack}>
-            Edit
-          </button>
-        </p>
-      </div>
+      <h2 ref={headingRef} tabIndex={-1} className="sr-only">
+        Pick a time
+      </h2>
+      <p className="schedule__intro">
+        A {booking.callMinutes}-minute call with the team for <strong>{details.name.trim()}</strong>
+        {details.company.trim() && <>, {details.company.trim()}</>}.{' '}
+        <button type="button" className="schedule__edit" onClick={onBack}>
+          Edit details
+        </button>
+      </p>
 
       <div className="cal">
         <div className="cal__top">
@@ -285,11 +285,9 @@ export function ScheduleStep({ details, value, onChange, onBack, onSubmit, statu
                 className={`cal__day${i === 0 ? ' cal__day--today' : ''}`}
                 onClick={() => pickDay(d)}
               >
+                {selected && <motion.span layoutId="cal-day" className="cal__pill" transition={pill} />}
                 <span className="cal__dow">{weekdayShort.format(d.date)}</span>
-                <motion.span className="cal__date" whileTap={open ? { scale: 0.88 } : undefined}>
-                  {selected && <motion.span layoutId="cal-day" className="cal__pill" transition={pill} />}
-                  <span className="cal__num">{d.date.getDate()}</span>
-                </motion.span>
+                <span className="cal__num">{d.date.getDate()}</span>
                 <span className="cal__dot" aria-hidden="true" />
               </button>
             )
@@ -312,6 +310,7 @@ export function ScheduleStep({ details, value, onChange, onBack, onSubmit, statu
                 {day ? dateLong.format(day.date) : 'No times available'}
               </motion.p>
             </AnimatePresence>
+            <span className="cal__zone">{zoneNote}</span>
           </div>
 
           <div className="cal__slots">
@@ -326,14 +325,14 @@ export function ScheduleStep({ details, value, onChange, onBack, onSubmit, statu
                 exit="exit"
                 transition={{ duration: 0.4, ease }}
               >
-                {day ? (
+                {day && day.slots.length > 0 ? (
                   groupsFor(day).map((group, g) => (
                     <div key={group.label} className="slots__group">
                       <p className="slots__label" id={`slots-${day.key}-${g}`}>
                         {group.label}
                       </p>
                       <div className="slots__grid" role="radiogroup" aria-labelledby={`slots-${day.key}-${g}`}>
-                        {group.slots.map((slot: Slot, i) => {
+                        {group.slots.map((slot: Slot) => {
                           const on = value?.getTime() === slot.start.getTime()
                           return (
                             <motion.button
@@ -343,10 +342,7 @@ export function ScheduleStep({ details, value, onChange, onBack, onSubmit, statu
                               aria-checked={on}
                               className={`slot${on ? ' slot--on' : ''}`}
                               onClick={() => onChange(slot.start)}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.35, delay: 0.05 + g * 0.06 + i * 0.02, ease }}
-                              whileTap={{ scale: 0.94 }}
+                              whileTap={{ scale: 0.95 }}
                             >
                               {on && <motion.span layoutId="slot-pill" className="slot__pill" transition={pill} />}
                               <span className="slot__text">{formatTime(slot.start)}</span>
@@ -358,7 +354,9 @@ export function ScheduleStep({ details, value, onChange, onBack, onSubmit, statu
                   ))
                 ) : (
                   <p className="slots__empty">
-                    No open times in the next {booking.daysAhead} days. Message us on WhatsApp and we&rsquo;ll fit you in.
+                    {firstOpen
+                      ? 'Every time on this day is booked. Pick another date.'
+                      : `No open times in the next ${booking.daysAhead} days. Message us on WhatsApp and we’ll find one.`}
                   </p>
                 )}
               </motion.div>
@@ -368,8 +366,22 @@ export function ScheduleStep({ details, value, onChange, onBack, onSubmit, statu
       </div>
 
       <AnimatePresence initial={false}>
+        {status === 'taken' && (
+          <motion.div
+            key="taken"
+            className="booking__error"
+            role="alert"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.35, ease }}
+          >
+            <p>Someone booked that time a moment ago. Pick another one and book again.</p>
+          </motion.div>
+        )}
         {status === 'error' && (
           <motion.div
+            key="error"
             className="booking__error"
             role="alert"
             initial={{ opacity: 0, height: 0 }}
@@ -378,7 +390,7 @@ export function ScheduleStep({ details, value, onChange, onBack, onSubmit, statu
             transition={{ duration: 0.35, ease }}
           >
             <p>
-              That didn&rsquo;t go through. Please try again, or{' '}
+              The booking didn&rsquo;t send. Check your connection and try again, or{' '}
               <a href={links.whatsapp} target="_blank" rel="noopener noreferrer">
                 <WhatsApp size={15} /> message us on WhatsApp
               </a>
@@ -404,9 +416,9 @@ export function ScheduleStep({ details, value, onChange, onBack, onSubmit, statu
                 transition={{ duration: 0.25, ease }}
               >
                 <strong>
-                  {dateShort.format(value)} · {formatTime(value)}
+                  {dateShort.format(value)}, {formatTime(value)}
                 </strong>
-                <span>{onStudioTime ? `${booking.callMinutes} min` : `${formatStudioTime(value)} in Bengaluru`}</span>
+                <span>{onStudioTime ? `${booking.callMinutes} minutes` : `${formatStudioTime(value)} in Bengaluru`}</span>
               </motion.p>
             ) : (
               <motion.p
@@ -430,7 +442,7 @@ export function ScheduleStep({ details, value, onChange, onBack, onSubmit, statu
               </motion.span>
             ) : (
               <motion.span key="idle" className="booking__btn-inner" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
-                Confirm booking
+                Book the call
               </motion.span>
             )}
           </AnimatePresence>

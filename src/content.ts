@@ -8,8 +8,10 @@ export const media = {
   // Still frame shown while the video loads, or if the phone refuses to autoplay it.
   heroPoster: '/media/hero-poster.webp' as string | undefined,
   // Services reel under the intro statement. Plays with sound by default (muted only until the visitor's
-  // first tap or click, when the browser requires it).
-  reelVideo: '/media/MRKTKings_Services_Reel_v2.mp4',
+  // first tap or click, when the browser requires it). Screens under 1024px wide get the 720p copy to save
+  // data (see Media in the README for the full-quality master).
+  reelVideo: '/media/services-reel-1080.mp4',
+  reelVideoSmall: '/media/services-reel-720.mp4',
   // Still frame shown until the reel plays (phones on Data Saver start from this).
   reelPoster: '/media/reel-poster.webp' as string | undefined,
 }
@@ -22,7 +24,7 @@ export const links = {
   // The Let's Connect page. Add ?service=<slug> to pre-select that service in the form.
   contact: '/contact-us/',
   email: 'mailto:connect@mrktkings.com',
-  whatsapp: 'https://wa.me/+917204002430',
+  whatsapp: 'https://wa.me/917204002430',
   linkedin: 'https://www.linkedin.com/company/mrktkings/',
   instagram: 'https://www.instagram.com/mrkt.kings',
   // Footer "Other links" stay hidden while these are '#'; add the page URLs once they exist.
@@ -247,7 +249,8 @@ export const about = {
   name: 'Aamir Hussain',
   initials: 'AH',
   role: 'Founder',
-  // Blurred still behind the head turn. (The share image is /public/og-about.jpg, made from about-portrait.webp.)
+  // Blurred still behind the head turn. (The share image is /public/og-about.jpg, made from a portrait that's
+  // no longer shipped; it's in git history: `git show 6c6ccc4:public/media/about-portrait.webp > portrait.webp`.)
   portraitBlur: '/media/about-portrait-blur.webp',
   // Cut-out head turn in the hero: frame 0 looks left, the last frame looks right.
   // `count` must match the frames in /public/media/about-turn (00.webp, 01.webp, ...).
@@ -294,27 +297,22 @@ export const about = {
 
 // Let's Connect page (/contact-us/). Step one collects the brief, step two books a discovery call.
 export const connectPage = {
-  eyebrow: "Let's Connect",
   title: ["Let's build", 'something'],
   highlight: 'iconic.',
-  intro: "Tell us where your brand is and where you want it to go. Pick a time that suits you, and we'll come to the call with ideas.",
-  // The left-hand column; the current one lights up as the visitor moves through the form.
-  steps: [
-    { title: 'Your brief', text: 'A few details about your brand and goals.' },
-    { title: 'Pick a time', text: 'A 30-minute call, whenever suits you.' },
-    { title: 'Meet the team', text: 'We bring ideas to the call, not a sales pitch.' },
-  ],
+  intro: "Tell us where your brand is and where you want it to go, then pick a time to talk. We'll come to the call with ideas.",
   // `service` is the matching Services page slug, so "Get started" on that service pre-selects the chip.
+  // `icon` picks the card's icon (see ServiceIcon in DetailsStep.tsx).
   interests: [
-    { label: 'Performance Marketing', service: 'performance-marketing' },
-    { label: 'Social Media', service: 'social-media-management' },
-    { label: 'Branding', service: 'branding' },
-    { label: 'Influencer Marketing', service: 'influencer-marketing' },
-    { label: 'Website & UX/UI', service: 'ux-ui-web-development' },
-    { label: 'Retention Marketing', service: 'retention-marketing' },
-    { label: 'Content Creation' },
-  ] as { label: string; service?: string }[],
-  budgetLabel: 'Project budget (INR)',
+    { label: 'Performance Marketing', service: 'performance-marketing', icon: 'chart' },
+    { label: 'Social Media', service: 'social-media-management', icon: 'chat' },
+    { label: 'Branding', service: 'branding', icon: 'gem' },
+    { label: 'Influencer Marketing', service: 'influencer-marketing', icon: 'star' },
+    { label: 'Website & UX/UI', service: 'ux-ui-web-development', icon: 'browser' },
+    { label: 'Retention Marketing', service: 'retention-marketing', icon: 'repeat' },
+    { label: 'Content Creation', icon: 'camera' },
+    { label: 'Something else', icon: 'sparkle' },
+  ] as { label: string; service?: string; icon: string }[],
+  budgetLabel: 'Budget',
   budgets: ['Under ₹1L', '₹1L – 3L', '₹3L – 10L', '₹10L+'],
 }
 

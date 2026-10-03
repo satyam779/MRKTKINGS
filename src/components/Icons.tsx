@@ -1,6 +1,6 @@
 import type { SVGProps } from 'react'
 
-type IconProps = SVGProps<SVGSVGElement> & { size?: number }
+export type IconProps = SVGProps<SVGSVGElement> & { size?: number }
 
 function Svg({ size = 20, children, ...props }: IconProps) {
   return (
@@ -133,5 +133,91 @@ export const Clock = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="12" r="8.5" />
     <path d="M12 7.5V12l3 2" />
+  </Svg>
+)
+
+export const ChartUp = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 19.5h16" />
+    <path d="m5 15 4.5-4.5 3 3L19 7" />
+    <path d="M14.5 7H19v4.5" />
+  </Svg>
+)
+
+export const Chat = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M20 11.5a8 8 0 0 1-11.6 7.1L4 19.5l1-4.2a8 8 0 1 1 15-3.8Z" />
+    <path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01" strokeWidth={2.4} />
+  </Svg>
+)
+
+export const Gem = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M6.5 4h11L21 9l-9 11L3 9Z" />
+    <path d="M3 9h18" />
+    <path d="m9.5 4-1.5 5 4 11 4-11-1.5-5" />
+  </Svg>
+)
+
+export const Star = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9Z" />
+  </Svg>
+)
+
+export const Browser = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="4.5" width="18" height="15" rx="3" />
+    <path d="M3 9h18" />
+    <path d="M6.5 6.8h.01M9 6.8h.01" strokeWidth={2.2} />
+  </Svg>
+)
+
+export const Repeat = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m17 3.5 3 3-3 3" />
+    <path d="M4 11.5V10a3.5 3.5 0 0 1 3.5-3.5H20" />
+    <path d="m7 20.5-3-3 3-3" />
+    <path d="M20 12.5V14a3.5 3.5 0 0 1-3.5 3.5H4" />
+  </Svg>
+)
+
+export const Camera = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.8l1.5-2h4.4l1.5 2h1.8A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5Z" />
+    <circle cx="12" cy="12.5" r="3.5" />
+  </Svg>
+)
+
+export const Sparkle = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M11 4c.6 4.2 2.3 5.9 6.5 6.5-4.2.6-5.9 2.3-6.5 6.5-.6-4.2-2.3-5.9-6.5-6.5C8.7 9.9 10.4 8.2 11 4Z" />
+    <path d="M18.5 15c.3 1.6 1 2.3 2.5 2.5-1.5.3-2.2 1-2.5 2.5-.3-1.5-1-2.2-2.5-2.5 1.5-.2 2.2-.9 2.5-2.5Z" />
+  </Svg>
+)
+
+export const Close = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M6 6l12 12M18 6 6 18" />
+  </Svg>
+)
+
+export const Search = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="m16 16 4 4" />
+  </Svg>
+)
+
+export const Download = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 4v11M7 10.5l5 5 5-5M5 20h14" />
+  </Svg>
+)
+
+export const Lock = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="5" y="10.5" width="14" height="10" rx="2.5" />
+    <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
   </Svg>
 )

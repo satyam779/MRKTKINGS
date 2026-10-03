@@ -1,4 +1,5 @@
 import { booking, contact } from '../../content'
+import { getSupabase, supabaseConfigured } from '../../lib/supabase'
 
 export type Slot = { key: string; start: Date }
 export type Day = { key: string; date: Date; slots: Slot[] }
@@ -121,9 +122,8 @@ export function icsUrl(start: Date) {
 }
 
 // ---------- Sending ----------
-// A form backend that accepts JSON POSTs (Formspree, Getform, Basin, a Zapier or Make webhook…), set in .env.
-// Without one, the visitor's email app opens with everything filled in instead.
-const endpoint: string | undefined = import.meta.env.VITE_CONTACT_ENDPOINT
+// Bookings are saved to Supabase (see supabase/schema.sql and the /admin/ page). Until Supabase is set up
+// in .env, the visitor's email app opens with everything filled in instead.
 
 function summary(d: Details, start: Date) {
   const when = `${dateStudio.format(start)}, ${formatStudioTime(start)}`
@@ -154,31 +154,40 @@ export function mailtoUrl(d: Details, start: Date) {
 
 export type Outcome = 'sent' | 'email'
 
+// Someone else booked the same slot first (the database allows one live booking per slot).
+export class SlotTakenError extends Error {}
+
+const blank = (v: string) => v.trim() || null
+
 export async function sendBooking(d: Details, start: Date): Promise<Outcome> {
   if (d.website) return 'sent'
-  if (!endpoint) {
+  if (!supabaseConfigured) {
     window.location.href = mailtoUrl(d, start)
     return 'email'
   }
-  const { subject, when, local } = summary(d, start)
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({
-      _subject: subject,
-      name: d.name,
-      company: d.company,
-      email: d.email,
-      phone: d.phone,
-      interests: d.interests.join(', '),
-      budget: d.budget,
-      message: d.message,
-      call_time: when,
-      call_time_visitor: local ?? when,
-      call_start_utc: start.toISOString(),
-      call_minutes: booking.callMinutes,
-    }),
+  const db = await getSupabase()
+  const { error } = await db.from('bookings').insert({
+    name: d.name.trim(),
+    company: blank(d.company),
+    email: d.email.trim(),
+    phone: blank(d.phone),
+    interests: d.interests,
+    budget: blank(d.budget),
+    message: blank(d.message),
+    call_start: start.toISOString(),
+    call_minutes: booking.callMinutes,
+    visitor_time_zone: visitorZone,
   })
-  if (!res.ok) throw new Error(`Booking request failed with ${res.status}`)
+  if (error?.code === '23505') throw new SlotTakenError('That time has just been booked.')
+  if (error) throw new Error(error.message)
   return 'sent'
+}
+
+// Start times already booked between two dates, as milliseconds. Empty when Supabase isn't set up.
+export async function fetchTakenSlots(from: Date, to: Date): Promise<number[]> {
+  if (!supabaseConfigured) return []
+  const db = await getSupabase()
+  const { data, error } = await db.rpc('taken_slots', { from_time: from.toISOString(), to_time: to.toISOString() })
+  if (error) throw new Error(error.message)
+  return (data as string[]).map((t) => new Date(t).getTime())
 }

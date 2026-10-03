@@ -1,17 +1,19 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
-import { connectPage, contact, links } from '../../content'
-import { Check, Mail, WhatsApp } from '../Icons'
+import { booking, connectPage } from '../../content'
+import { Check } from '../Icons'
 import type { Details, Outcome } from './booking'
-import { sendBooking } from './booking'
+import { fetchTakenSlots, SlotTakenError, sendBooking } from './booking'
 import { DetailsStep } from './DetailsStep'
 import { DoneStep } from './DoneStep'
 import { ScheduleStep } from './ScheduleStep'
 
 const ease = [0.22, 1, 0.36, 1] as const
+const DAY = 86_400_000
 type Step = 0 | 1 | 2
+export type SendStatus = 'idle' | 'sending' | 'error' | 'taken'
 
-// "Get started" on a service links here with ?service=<slug>, which pre-selects that chip.
+// "Get started" on a service links here with ?service=<slug>, which pre-selects that card.
 function initialDetails(): Details {
   const service = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('service') : null
   const match = connectPage.interests.find((i) => i.service && i.service === service)
@@ -20,12 +22,12 @@ function initialDetails(): Details {
 
 // Steps slide sideways (forwards to the left, back to the right) and blur as they pass.
 const stepSlide = {
-  enter: (dir: number) => ({ opacity: 0, x: dir * 56, filter: 'blur(8px)' }),
+  enter: (dir: number) => ({ opacity: 0, x: dir * 48, filter: 'blur(6px)' }),
   center: { opacity: 1, x: 0, filter: 'blur(0px)' },
-  exit: (dir: number) => ({ opacity: 0, x: dir * -56, filter: 'blur(8px)' }),
+  exit: (dir: number) => ({ opacity: 0, x: dir * -48, filter: 'blur(6px)' }),
 }
 
-// The card eases to each step's height instead of snapping. Changes within a step (an error message,
+// The panel eases to each step's height instead of snapping. Changes within a step (an error message,
 // a different number of time slots) follow instantly, since those animate themselves.
 function useStepHeight(step: Step) {
   const ref = useRef<HTMLDivElement>(null)
@@ -55,25 +57,111 @@ function useStepHeight(step: Step) {
   return { ref, height, easing }
 }
 
-function BookingFlow({ step, onStep }: { step: Step; onStep: (s: Step) => void }) {
+const stepNames = ['Your details', 'Pick a time']
+const swap = {
+  initial: { opacity: 0, y: 10, filter: 'blur(4px)' },
+  animate: { opacity: 1, y: 0, filter: 'blur(0px)' },
+  exit: { opacity: 0, y: -10, filter: 'blur(4px)' },
+  transition: { duration: 0.3, ease },
+}
+
+// Panel header: both steps named, the current one lit, and a red line along the bottom edge that fills
+// as the visitor moves through. Folds away once booked.
+function PanelHead({ step, intro }: { step: Step; intro: boolean }) {
+  return (
+    <AnimatePresence initial={false}>
+      {step < 2 && (
+        <motion.div
+          className="panel__head"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.45, ease }}
+        >
+          <div className="panel__head-inner">
+            <ol className="psteps" aria-label="Booking steps">
+              {stepNames.map((name, i) => {
+                const done = step > i
+                return (
+                  <li
+                    key={name}
+                    className={`pstep${step === i ? ' is-on' : ''}${done ? ' is-done' : ''}`}
+                    aria-current={step === i ? 'step' : undefined}
+                  >
+                    <span className="pstep__num" aria-hidden="true">
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        <motion.span key={done ? 'done' : 'num'} {...swap}>
+                          {done ? <Check size={13} strokeWidth={3} /> : i + 1}
+                        </motion.span>
+                      </AnimatePresence>
+                    </span>
+                    <span className="pstep__name">{name}</span>
+                  </li>
+                )
+              })}
+            </ol>
+            <p className="panel__meta" aria-hidden="true">
+              <span className="panel__meta-text">
+                <AnimatePresence mode="popLayout" initial={false}>
+                  <motion.span key={step} {...swap}>
+                    {step === 0 ? 'About 2 min' : `${booking.callMinutes}-min call`}
+                  </motion.span>
+                </AnimatePresence>
+              </span>
+            </p>
+          </div>
+          <span className="panel__track" aria-hidden="true">
+            <motion.span
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: (step + 1) / stepNames.length }}
+              transition={{ duration: intro ? 1 : 0.7, delay: intro ? 0.45 : 0, ease }}
+            />
+          </span>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+function BookingFlow() {
   const reduce = useReducedMotion()
-  const cardRef = useRef<HTMLDivElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const [step, setStep] = useState<Step>(0)
   const [dir, setDir] = useState(1)
   const [moved, setMoved] = useState(false)
   const [details, setDetails] = useState(initialDetails)
   const [start, setStart] = useState<Date | null>(null)
-  const [status, setStatus] = useState<'idle' | 'sending' | 'error'>('idle')
+  const [status, setStatus] = useState<SendStatus>('idle')
   const [outcome, setOutcome] = useState<Outcome>('sent')
+  // Start times other people have already booked, so the calendar leaves them out.
+  const [taken, setTaken] = useState<ReadonlySet<number>>(() => new Set())
   const { ref: bodyRef, height, easing } = useStepHeight(step)
+
+  // Fetched in the background while the visitor fills in step one. If it fails the calendar shows every
+  // time, and the database still refuses a second booking for the same slot.
+  useEffect(() => {
+    let live = true
+    const now = Date.now()
+    fetchTakenSlots(new Date(now), new Date(now + (booking.daysAhead + 2) * DAY))
+      .then((times) => {
+        if (!live) return
+        setTaken(new Set(times))
+        setStart((s) => (s && times.includes(s.getTime()) ? null : s))
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [])
 
   const go = (next: Step) => {
     setDir(next > step ? 1 : -1)
     setMoved(true)
     setStatus('idle')
-    onStep(next)
-    // If the top of the card has scrolled away, bring it back so the new step starts in view.
-    const card = cardRef.current
-    if (card && card.getBoundingClientRect().top < 0) card.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+    setStep(next)
+    // If the top of the panel has scrolled away, bring it back so the new step starts in view.
+    const root = rootRef.current
+    if (root && root.getBoundingClientRect().top < 0) root.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
   }
 
   const submit = async () => {
@@ -82,58 +170,44 @@ function BookingFlow({ step, onStep }: { step: Step; onStep: (s: Step) => void }
     try {
       setOutcome(await sendBooking(details, start))
       go(2)
-    } catch {
-      setStatus('error')
+    } catch (err) {
+      if (!(err instanceof SlotTakenError)) return setStatus('error')
+      setTaken((t) => new Set(t).add(start.getTime()))
+      setStart(null)
+      setStatus('taken')
     }
   }
 
-  const labels = ['Your details', 'Pick a time', 'Booked']
+  const pickTime = (next: Date | null) => {
+    setStart(next)
+    if (status === 'error' || status === 'taken') setStatus('idle')
+  }
 
   return (
-    <div ref={cardRef} className="booking">
-      <div className="booking__top">
-        <p className="booking__step" aria-live="polite">
-          <span className="booking__count">
-            <AnimatePresence mode="popLayout" initial={false}>
-              <motion.span
-                key={step}
-                initial={{ y: '100%', opacity: 0 }}
-                animate={{ y: '0%', opacity: 1 }}
-                exit={{ y: '-100%', opacity: 0 }}
-                transition={{ duration: 0.4, ease }}
-              >
-                {String(step + 1).padStart(2, '0')}
-              </motion.span>
-            </AnimatePresence>
-          </span>
-          <span className="booking__of">/ 03</span>
-          <span className="sr-only">: </span>
-          <span className="booking__label">{labels[step]}</span>
-        </p>
-        <div className="booking__bar" aria-hidden="true">
-          <motion.span
-            initial={false}
-            animate={{ scaleX: (step + 1) / 3 }}
-            transition={{ type: 'spring', stiffness: 120, damping: 22 }}
-          />
-        </div>
-      </div>
+    <motion.div
+      ref={rootRef}
+      className="panel"
+      initial={{ opacity: 0, y: 28 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.9, delay: 0.1, ease }}
+    >
+      <PanelHead step={step} intro={!moved} />
 
       <motion.div
-        className="booking__body"
+        className="panel__body"
         animate={{ height }}
         transition={easing ? { duration: 0.55, ease } : { duration: 0 }}
       >
-        <div ref={bodyRef} className="booking__inner">
-          <AnimatePresence mode="wait" initial={false} custom={dir}>
+        <div ref={bodyRef} className="panel__inner">
+          <AnimatePresence mode="wait" custom={dir}>
             <motion.div
               key={step}
               custom={dir}
               variants={stepSlide}
-              initial="enter"
+              initial={moved ? 'enter' : false}
               animate="center"
               exit="exit"
-              transition={{ duration: 0.45, ease }}
+              transition={{ duration: 0.4, ease }}
             >
               {step === 0 && (
                 <DetailsStep
@@ -141,13 +215,15 @@ function BookingFlow({ step, onStep }: { step: Step; onStep: (s: Step) => void }
                   onChange={(patch) => setDetails((d) => ({ ...d, ...patch }))}
                   onNext={() => go(1)}
                   focusHeading={moved}
+                  intro={!moved}
                 />
               )}
               {step === 1 && (
                 <ScheduleStep
                   details={details}
                   value={start}
-                  onChange={setStart}
+                  taken={taken}
+                  onChange={pickTime}
                   onBack={() => go(0)}
                   onSubmit={submit}
                   status={status}
@@ -159,34 +235,24 @@ function BookingFlow({ step, onStep }: { step: Step; onStep: (s: Step) => void }
           </AnimatePresence>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   )
 }
 
 export function ConnectPage() {
-  const [step, setStep] = useState<Step>(0)
   const last = connectPage.title.length - 1
 
   return (
     <section className="connect" aria-labelledby="connect-title">
       <div className="container connect__grid">
         <div className="connect__intro">
-          <motion.span
-            className="eyebrow"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1, ease }}
-          >
-            {connectPage.eyebrow}
-          </motion.span>
-
           <h1 id="connect-title" className="connect__title">
             {connectPage.title.map((line, i) => (
               <span key={line} className="hero__line">
                 <motion.span
                   initial={{ y: '110%' }}
                   animate={{ y: '0%' }}
-                  transition={{ duration: 1, delay: 0.2 + i * 0.12, ease }}
+                  transition={{ duration: 1, delay: 0.15 + i * 0.12, ease }}
                 >
                   {line}
                   {i === last && <span className="accent"> {connectPage.highlight}</span>}
@@ -194,82 +260,10 @@ export function ConnectPage() {
               </span>
             ))}
           </h1>
-
-          <motion.p
-            className="connect__lead"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.5, ease }}
-          >
-            {connectPage.intro}
-          </motion.p>
         </div>
 
-        <motion.div
-          className="connect__form"
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.3, ease }}
-        >
-          <BookingFlow step={step} onStep={setStep} />
-        </motion.div>
-
-        {/* Sits under the intro on wide screens and after the form on phones. */}
-        <div className="connect__aside">
-          {/* What happens next; the current stage lights up as the visitor moves through the form. */}
-          <ol className="how">
-            {connectPage.steps.map((s, i) => {
-              const state = i < step ? 'done' : i === step ? 'current' : 'next'
-              return (
-                <motion.li
-                  key={s.title}
-                  className={`how__item how__item--${state}`}
-                  aria-current={state === 'current' ? 'step' : undefined}
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.6, delay: 0.6 + i * 0.08, ease }}
-                >
-                  {state === 'current' && (
-                    <motion.span layoutId="how-marker" className="how__marker" transition={{ type: 'spring', stiffness: 300, damping: 30 }} />
-                  )}
-                  <span className="how__num" aria-hidden="true">
-                    <AnimatePresence mode="popLayout" initial={false}>
-                      {state === 'done' ? (
-                        <motion.span key="done" initial={{ scale: 0, rotate: -45 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0 }}>
-                          <Check size={14} strokeWidth={2.4} />
-                        </motion.span>
-                      ) : (
-                        <motion.span key="num" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                          {String(i + 1).padStart(2, '0')}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </span>
-                  <span className="how__body">
-                    <strong>{s.title}</strong>
-                    <span>{s.text}</span>
-                  </span>
-                </motion.li>
-              )
-            })}
-          </ol>
-
-          <motion.div
-            className="connect__direct"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.85, ease }}
-          >
-            <p>Rather talk right now?</p>
-            <div className="connect__links">
-              <a href={links.whatsapp} target="_blank" rel="noopener noreferrer">
-                <WhatsApp size={18} /> {contact.phone}
-              </a>
-              <a href={links.email}>
-                <Mail size={18} /> {contact.email}
-              </a>
-            </div>
-          </motion.div>
+        <div className="connect__form">
+          <BookingFlow />
         </div>
       </div>
     </section>

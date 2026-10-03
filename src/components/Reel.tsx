@@ -13,7 +13,11 @@ const time = (seconds: number) => {
 const gestures = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'] as const
 const activation = (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation
 
+// Phones and small tablets get the lighter 720p reel. Chosen once, so turning a tablet doesn't restart it.
+const reelSrc = () => (window.matchMedia('(min-width: 1024px)').matches ? media.reelVideo : media.reelVideoSmall)
+
 export function Reel() {
+  const [src] = useState(reelSrc)
   const ref = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const clockRef = useRef<HTMLSpanElement>(null)
@@ -137,7 +141,7 @@ export function Reel() {
         <video
           ref={videoRef}
           className="reel__video"
-          src={media.reelVideo}
+          src={src}
           poster={media.reelPoster}
           muted={muted}
           loop
