@@ -7,9 +7,10 @@ import {
   useMotionValue,
   useMotionValueEvent,
   useReducedMotion,
+  useScroll,
   useTransform,
 } from 'framer-motion'
-import type { KeyboardEvent } from 'react'
+import type { CSSProperties, KeyboardEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useAutoplay } from '../useAutoplay'
 import { ArrowUpRight, ChevronLeft, ChevronRight } from './Icons'
@@ -26,7 +27,8 @@ export type RadialItem = {
 }
 
 const ease = [0.22, 1, 0.36, 1] as const
-const pad = (n: number) => String(n).padStart(2, '0')
+// Pixels of page scroll that turn the ring one full circle.
+const SCROLL_PER_TURN = 1800
 
 type Sizes = { center: number; radius: number; thumb: number; height: number }
 const measure = (width: number): Sizes => {
@@ -84,6 +86,17 @@ export function RadialCarousel({ items, label }: { items: RadialItem[]; label: s
   const step = 360 / items.length
   // The ring deals itself in once the section scrolls into view.
   const inView = useInView(stageRef, { once: true, amount: 0.3 })
+  const onScreen = useInView(stageRef)
+
+  // Scrolling the page turns the ring: down spins it clockwise, up spins it back, and it rests when the page does.
+  const { scrollY } = useScroll()
+  useMotionValueEvent(scrollY, 'change', (y) => {
+    const delta = y - (scrollY.getPrevious() ?? y)
+    if (!open || !onScreen || reduce || delta === 0) return
+    spin.current?.stop()
+    heading.current = null
+    rotation.set(rotation.get() + (delta / SCROLL_PER_TURN) * 360)
+  })
 
   // Which item currently sits in the top slot, shown in the middle of the ring.
   const [top, setTop] = useState(0)
@@ -183,7 +196,7 @@ export function RadialCarousel({ items, label }: { items: RadialItem[]; label: s
     <div
       ref={stageRef}
       className="radial"
-      style={{ height: sizes.height }}
+      style={{ height: sizes.height, '--radial-h': `${sizes.height}px` } as CSSProperties}
       role="region"
       aria-roledescription="carousel"
       aria-label={label}
@@ -202,8 +215,6 @@ export function RadialCarousel({ items, label }: { items: RadialItem[]; label: s
           >
             <FeatureCard
               item={item}
-              index={active}
-              total={items.length}
               size={sizes.center}
               focus={focus}
               onOpen={openRing}
@@ -260,7 +271,6 @@ export function RadialCarousel({ items, label }: { items: RadialItem[]; label: s
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, ease }}
               >
-                <span className="radial__now-kind">{topItem.kind}</span>
                 <span className="radial__now-title">{topItem.title}</span>
               </motion.div>
               <button type="button" className="radial__open" onClick={() => close(top)}>
@@ -283,8 +293,6 @@ type Focus = 'all' | 'prev' | 'next' | 'ring' | null
 
 type FeatureCardProps = {
   item: RadialItem
-  index: number
-  total: number
   size: number
   focus: Focus
   onOpen: () => void
@@ -292,14 +300,13 @@ type FeatureCardProps = {
   onNext: () => void
 }
 
-function FeatureCard({ item, index, total, size, focus, onOpen, onPrev, onNext }: FeatureCardProps) {
+function FeatureCard({ item, size, focus, onOpen, onPrev, onNext }: FeatureCardProps) {
   const ref = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const allRef = useRef<HTMLButtonElement>(null)
   const prevRef = useRef<HTMLButtonElement>(null)
   const nextRef = useRef<HTMLButtonElement>(null)
   const inView = useInView(ref, { amount: 0.4 })
-  const reduce = useReducedMotion()
   const [playing, setPlaying] = useState(false)
   // Hold the reel back until the card has finished growing, so the bright poster carries the morph.
   const [settled, setSettled] = useState(false)
@@ -313,8 +320,8 @@ function FeatureCard({ item, index, total, size, focus, onOpen, onPrev, onNext }
     target?.current?.focus({ preventScroll: true })
   }, [focus])
 
-  // Project reels play only while the card is on screen (never for reduced-motion visitors).
-  useAutoplay(videoRef, settled && inView && !reduce)
+  // Project reels play only while the card is on screen.
+  useAutoplay(videoRef, settled && inView)
 
   return (
     <motion.div
@@ -366,9 +373,6 @@ function FeatureCard({ item, index, total, size, focus, onOpen, onPrev, onNext }
         </div>
 
         <div className="radial__caption">
-          <span className="radial__kind">
-            <b>{item.kind}</b> {pad(index + 1)} / {pad(total)}
-          </span>
           <h3 className="radial__title">{item.title}</h3>
           <p className="radial__meta">{item.meta}</p>
           <a className="radial__link" href={item.href}>

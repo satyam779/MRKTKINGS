@@ -1,6 +1,6 @@
 import { motion, useInView, useReducedMotion, useScroll, useTransform } from 'framer-motion'
 import { useRef } from 'react'
-import { hero, media } from '../content'
+import { hero, links, media } from '../content'
 import { useAutoplay } from '../useAutoplay'
 import { ArrowUpRight } from './Icons'
 
@@ -17,8 +17,8 @@ export function Hero() {
   const contentY = useTransform(scrollYProgress, [0, 1], ['0%', '25%'])
   const contentOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0])
 
-  // Only play the background video while it is on screen, and never for reduced-motion users.
-  useAutoplay(videoRef, inView && !reduce)
+  // Only play the background video while it is on screen.
+  useAutoplay(videoRef, inView)
 
   const lines = [...hero.lines.map((text) => ({ text, highlight: false })), { text: hero.highlight, highlight: true }]
 
@@ -74,7 +74,7 @@ export function Hero() {
         >
           <p className="hero__sub">{hero.sub}</p>
           <div className="hero__actions">
-            <a href="#contact" className="btn btn--primary">
+            <a href={links.contact} className="btn btn--primary">
               Enquire Now <ArrowUpRight size={18} />
             </a>
             <a href="#work" className="btn btn--ghost">

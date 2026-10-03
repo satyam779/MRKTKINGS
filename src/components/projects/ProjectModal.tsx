@@ -1,6 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef } from 'react'
-import type { MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { deliverables, links } from '../../content'
 import type { Project } from '../../content'
@@ -69,12 +68,6 @@ export function ProjectModal({ project, index, all, morph, onClose, onNavigate }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose, onNavigate, next.slug, prev.slug])
-
-  const goToContact = (e: MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault()
-    onClose()
-    window.setTimeout(() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' }), 450)
-  }
 
   const details = [
     project.challenge && { title: 'The challenge', text: project.challenge },
@@ -202,7 +195,7 @@ export function ProjectModal({ project, index, all, morph, onClose, onNavigate }
                     Want this kind of <span className="accent">Wow</span> for your brand?
                   </p>
                   <div className="pmodal__cta-actions">
-                    <a href="#contact" className="btn btn--primary" onClick={goToContact}>
+                    <a href={links.contact} className="btn btn--primary">
                       Let&rsquo;s Connect <ArrowUpRight size={18} />
                     </a>
                     {project.website && (

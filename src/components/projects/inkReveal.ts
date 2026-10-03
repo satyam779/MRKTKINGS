@@ -1,5 +1,6 @@
 // "Hover ink" for the Projects hero: the pointer paints a ragged ink stroke, and inside the ink
 // a drifting wall of project tiles shows through. The ink dries (fades) on its own after ~1.5s.
+// The intro can also flood the whole host from the edges, which then dries off the same way.
 //
 // Two WebGL passes per frame:
 //   1. update  - a half-resolution mask that decays every frame and gets new brush splats stamped in
@@ -20,8 +21,13 @@ export type InkEngine = {
   move: (x: number, y: number, pointerType: string) => void
   blot: (x: number, y: number) => void
   leave: () => void
-  // Paints a scripted stroke along `path` (t from 0 to 1) - used for the intro sweep.
+  // Paints a scripted stroke along `path` (t from 0 to 1) - used for the intro sweep. It has its own
+  // brush, so pointer movement paints alongside it instead of cancelling it.
   sweep: (path: (t: number) => { x: number; y: number }, duration: number) => void
+  // Ink closes in from every edge until it covers the whole host, then dries away like any stroke.
+  flood: (duration: number) => void
+  // Settles once every poster has loaded (or failed), so the intro never reveals empty tiles.
+  ready: Promise<void>
   destroy: () => void
 }
 
@@ -76,7 +82,8 @@ float fbm(vec2 p) {
   return v;
 }`
 
-// Decays the previous mask, lets it creep a little (ink bleed), then stamps this frame's splats.
+// Decays the previous mask, lets it creep a little (ink bleed), then stamps this frame's splats
+// and any flood coming in from the edges.
 const UPDATE = `${HEADER}
 uniform sampler2D uPrev;
 uniform vec2 uRes;
@@ -86,6 +93,7 @@ uniform float uTime;
 uniform vec4 uSeg[${MAX_SPLATS}];
 uniform vec2 uDot[${MAX_SPLATS}];
 uniform int uCount;
+uniform float uFlood;
 
 float sdSeg(vec2 p, vec2 a, vec2 b) {
   vec2 pa = p - a;
@@ -107,6 +115,14 @@ void main() {
     float jag = (noise(p * 0.035 + float(i) * 13.7) - 0.5) * d.x * 0.3;
     float a = 1.0 - smoothstep(d.x * 0.35, d.x, sdSeg(p, s.xy, s.zw) + jag);
     v = max(v, a * d.y);
+  }
+  if (uFlood > 0.0) {
+    // Rounded-box distance from the centre: ~1 along every edge, 0 in the middle. A ragged front
+    // sweeps inwards as uFlood climbs, and everything is covered by the time it passes 1.3.
+    vec2 c = abs(vUv - 0.5) * 2.0;
+    float edge = pow(pow(c.x, 4.0) + pow(c.y, 4.0), 0.25);
+    float front = edge + (noise(p * 0.008 + uTime * 0.3) - 0.5) * 0.24 + (noise(p * 0.03) - 0.5) * 0.08;
+    v = max(v, smoothstep(1.0 - uFlood, 1.06 - uFlood, front));
   }
   gl_FragColor = vec4(v, 0.0, 0.0, 1.0);
 }`
@@ -169,6 +185,7 @@ void main() {
 
 type Target = { tex: WebGLTexture; fbo: WebGLFramebuffer }
 type Splat = { ax: number; ay: number; bx: number; by: number; r: number; s: number }
+type Brush = { x: number; y: number; r: number }
 
 const smoothstep = (a: number, b: number, x: number) => {
   const t = Math.min(Math.max((x - a) / (b - a), 0), 1)
@@ -220,7 +237,7 @@ export function createInkEngine(host: HTMLElement, opts: InkOptions): InkEngine 
   if (!updateProg || !displayProg) return null
   const uni = (prog: WebGLProgram, names: string[]) =>
     Object.fromEntries(names.map((n) => [n, gl.getUniformLocation(prog, n)]))
-  const uU = uni(updateProg, ['uPrev', 'uRes', 'uTexel', 'uDecay', 'uTime', 'uSeg', 'uDot', 'uCount'])
+  const uU = uni(updateProg, ['uPrev', 'uRes', 'uTexel', 'uDecay', 'uTime', 'uSeg', 'uDot', 'uCount', 'uFlood'])
   const uD = uni(displayProg, [
     'uMask', 'uAtlas', 'uRes', 'uTime', 'uTile', 'uGap', 'uDrift', 'uTiles', 'uShift', 'uInk', 'uRim',
   ])
@@ -269,12 +286,21 @@ export function createInkEngine(host: HTMLElement, opts: InkOptions): InkEngine 
   }
 
   let destroyed = false
-  opts.images.slice(0, tiles).forEach((src, i) => {
-    const img = new Image()
-    img.decoding = 'async'
-    img.onload = () => !destroyed && upload(i, img)
-    img.src = src
-  })
+  const ready = Promise.all(
+    opts.images.slice(0, tiles).map(
+      (src, i) =>
+        new Promise<void>((resolve) => {
+          const img = new Image()
+          img.decoding = 'async'
+          img.onload = () => {
+            if (!destroyed) upload(i, img)
+            resolve()
+          }
+          img.onerror = () => resolve()
+          img.src = src
+        }),
+    ),
+  ).then(() => undefined)
 
   // Reels replace the posters once they can play. Mouse users only, after their first stroke.
   const videos: HTMLVideoElement[] = []
@@ -369,13 +395,15 @@ export function createInkEngine(host: HTMLElement, opts: InkOptions): InkEngine 
   let inside = false
   let tx = 0
   let ty = 0
-  let bx = 0
-  let by = 0
-  let radius = 0
+  const brush: Brush = { x: 0, y: 0, r: 0 }
+  let lead = brush
   let shiftX = 0
   let shiftY = 0
   let project = -1
-  let script: { start: number; duration: number; path: (t: number) => { x: number; y: number } } | null = null
+  let intro: { start: number; duration: number; path: (t: number) => { x: number; y: number }; brush: Brush } | null =
+    null
+  let flood: { start: number; duration: number } | null = null
+  let floodLevel = 0 // 0 = no flood this frame; past ~1.25 the whole host is covered
   const queue: Splat[] = []
   const segs = new Float32Array(MAX_SPLATS * 4)
   const dots = new Float32Array(MAX_SPLATS * 2)
@@ -393,9 +421,9 @@ export function createInkEngine(host: HTMLElement, opts: InkOptions): InkEngine 
     splat(px, py, px, py, r, 0.95)
   }
   const startStroke = (x: number, y: number) => {
-    bx = tx = x
-    by = ty = y
-    radius = base * 0.35 // strokes start thin and swell as they speed up
+    brush.x = tx = x
+    brush.y = ty = y
+    brush.r = base * 0.35 // strokes start thin and swell as they speed up
   }
 
   // Which project tile sits under a point - mirrors the wall maths in the display shader.
@@ -410,35 +438,35 @@ export function createInkEngine(host: HTMLElement, opts: InkOptions): InkEngine 
     return (((row + col * 2) % tiles) + tiles) % tiles
   }
 
-  const step = (now: number, dt: number) => {
-    if (script) {
-      const t = (now - script.start) / script.duration
-      if (t >= 1) {
-        script = null
-      } else {
-        const pt = script.path(easeInOut(Math.max(t, 0)))
-        tx = pt.x
-        ty = pt.y
-        lastMove = now
-        painting = true
-      }
-    }
-    if (!painting) return
-
+  // Eases a brush towards (x, y), swelling as it speeds up, and inks the ground it covers.
+  // Returns how far it moved this frame.
+  const advance = (b: Brush, x: number, y: number, dt: number) => {
     const k = 1 - Math.pow(0.7, dt * 60)
-    const nx = bx + (tx - bx) * k
-    const ny = by + (ty - by) * k
-    const dist = Math.hypot(nx - bx, ny - by)
+    const nx = b.x + (x - b.x) * k
+    const ny = b.y + (y - b.y) * k
+    const dist = Math.hypot(nx - b.x, ny - b.y)
     const speed = dist / Math.max(dt, 0.001)
     const want = base * (0.5 + 0.75 * smoothstep(60, 1600, speed))
-    radius += (want - radius) * (1 - Math.pow(0.82, dt * 60))
+    b.r += (want - b.r) * (1 - Math.pow(0.82, dt * 60))
     if (dist > 0.25) {
-      splat(bx, by, nx, ny, radius)
+      splat(b.x, b.y, nx, ny, b.r)
       // Fast flicks throw droplets off the side of the stroke.
-      if (speed > 1100 && Math.random() < dt * 7) droplet(nx, ny, radius * 2.2, radius * 0.16)
+      if (speed > 1100 && Math.random() < dt * 7) droplet(nx, ny, b.r * 2.2, b.r * 0.16)
     }
-    bx = nx
-    by = ny
+    b.x = nx
+    b.y = ny
+    return dist
+  }
+
+  const step = (now: number, dt: number) => {
+    if (intro) {
+      const t = Math.min((now - intro.start) / intro.duration, 1)
+      const pt = intro.path(easeInOut(Math.max(t, 0)))
+      // Finished once the path is done and the brush has caught up with its end.
+      if (advance(intro.brush, pt.x, pt.y, dt) < 0.1 && t >= 1) intro = null
+    }
+    if (!painting) return
+    const dist = advance(brush, tx, ty, dt)
     if (now - lastMove > 600 && dist < 0.1) painting = false
   }
 
@@ -471,6 +499,7 @@ export function createInkEngine(host: HTMLElement, opts: InkOptions): InkEngine 
     gl.uniform4fv(uU.uSeg, segs)
     gl.uniform2fv(uU.uDot, dots)
     gl.uniform1i(uU.uCount, batch.length)
+    gl.uniform1f(uU.uFlood, floodLevel)
     gl.drawArrays(gl.TRIANGLES, 0, 3)
     ;[read, write] = [write, read]
 
@@ -504,19 +533,32 @@ export function createInkEngine(host: HTMLElement, opts: InkOptions): InkEngine 
     pendingDecay += DECAY_PER_SEC * dt
 
     step(now, dt)
+    floodLevel = 0
+    if (flood) {
+      const t = Math.min(Math.max((now - flood.start) / flood.duration, 0), 1)
+      floodLevel = easeInOut(t) * 1.3
+      lastInk = now
+      // Once it has covered everything the flood lets go, and the ink dries off in patches.
+      if (t >= 1) flood = null
+    }
+    // The pointer leads while it is painting over the hero; otherwise the intro brush does. The last
+    // one to lead keeps the label once both stop, so it fades out where the ink ended.
+    const live = painting && inside
+    if (live) lead = brush
+    else if (intro) lead = intro.brush
     // The wall slides gently against the brush, like looking through a window.
     const ease = 1 - Math.pow(0.92, dt * 60)
-    shiftX += ((cssW / 2 - bx) * 0.06 - shiftX) * ease
-    shiftY += ((by - cssH / 2) * 0.06 - shiftY) * ease
+    shiftX += ((cssW / 2 - lead.x) * 0.06 - shiftX) * ease
+    shiftY += ((lead.y - cssH / 2) * 0.06 - shiftY) * ease
 
     uploadVideos()
     draw()
 
-    const under = tileAt(bx, by)
+    const under = tileAt(lead.x, lead.y)
     if (under >= 0) project = under
-    opts.onBrush?.(bx, by, project, painting && (inside || !!script) && now - lastInk < 300)
+    opts.onBrush?.(lead.x, lead.y, project, (live || !!intro) && now - lastInk < 300)
 
-    if (now - lastInk > LIFETIME_MS && !painting && !script) {
+    if (now - lastInk > LIFETIME_MS && !painting && !intro && !flood) {
       gl.clearColor(0, 0, 0, 0)
       gl.clear(gl.COLOR_BUFFER_BIT)
       videos.forEach((v) => v.pause())
@@ -542,7 +584,6 @@ export function createInkEngine(host: HTMLElement, opts: InkOptions): InkEngine 
   return {
     move(x, y, pointerType) {
       const now = performance.now()
-      script = null
       inside = true
       if (!painting || now - lastMove > NEW_STROKE_MS) startStroke(x, y)
       tx = x
@@ -554,7 +595,6 @@ export function createInkEngine(host: HTMLElement, opts: InkOptions): InkEngine 
     },
     blot(x, y) {
       const now = performance.now()
-      script = null
       inside = true
       startStroke(x, y)
       lastMove = now
@@ -568,11 +608,14 @@ export function createInkEngine(host: HTMLElement, opts: InkOptions): InkEngine 
     },
     sweep(path, duration) {
       const start = path(0)
-      startStroke(start.x, start.y)
-      script = { start: performance.now(), duration, path }
-      painting = true
+      intro = { start: performance.now(), duration, path, brush: { x: start.x, y: start.y, r: base * 0.35 } }
       wake()
     },
+    flood(duration) {
+      flood = { start: performance.now(), duration }
+      wake()
+    },
+    ready,
     destroy() {
       destroyed = true
       cancelAnimationFrame(raf)

@@ -4,7 +4,7 @@ import type { Plugin } from 'vite'
 import { defineConfig, loadEnv } from 'vite'
 
 // Public pages, for the sitemap. Keep in step with the HTML entries below.
-const pages = ['/', '/services/', '/our-work/', '/about/']
+const pages = ['/', '/services/', '/our-work/', '/about/', '/contact-us/']
 
 // Writes robots.txt and sitemap.xml into the build from VITE_SITE_URL, so the domain lives only in .env.
 function seoFiles(site: string): Plugin {
@@ -37,12 +37,13 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), seoFiles(site)],
     build: {
       rollupOptions: {
-        // One HTML entry per page: /, /services/, /our-work/ and /about/
+        // One HTML entry per page: /, /services/, /our-work/, /about/ and /contact-us/
         input: {
           main: resolve(import.meta.dirname, 'index.html'),
           services: resolve(import.meta.dirname, 'services/index.html'),
           work: resolve(import.meta.dirname, 'our-work/index.html'),
           about: resolve(import.meta.dirname, 'about/index.html'),
+          contact: resolve(import.meta.dirname, 'contact-us/index.html'),
         },
       },
     },

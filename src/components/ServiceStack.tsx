@@ -2,7 +2,7 @@ import { motion, useReducedMotion, useScroll, useSpring, useTransform } from 'fr
 import type { MotionValue } from 'framer-motion'
 import type { CSSProperties } from 'react'
 import { useEffect, useRef } from 'react'
-import { services } from '../content'
+import { links, services } from '../content'
 import { useMediaQuery } from '../useMediaQuery'
 import { ArrowUpRight } from './Icons'
 
@@ -72,7 +72,7 @@ function ServiceCard({ service, index, total, stackProgress, stacked }: CardProp
               <p className="stack__tagline">{service.tagline}</p>
               <p className="stack__text">{service.text}</p>
               <p className="stack__closing">{service.closing}</p>
-              <a href="#contact" className="btn btn--ghost stack__cta">
+              <a href={`${links.contact}?service=${service.slug}`} className="btn btn--ghost stack__cta">
                 Get started <ArrowUpRight size={18} />
               </a>
             </div>
@@ -88,8 +88,10 @@ function ServiceCard({ service, index, total, stackProgress, stacked }: CardProp
 export function ServiceStack() {
   const ref = useRef<HTMLElement>(null)
   // Sticky stacking needs room to show a whole card. Phones use a compact card whose photo shrinks to fit,
-  // so they stack from 520px of visible height (small phones like the iPhone SE in Safari); the two-column desktop card needs 760px. Shorter screens get a list.
-  const stacked = useMediaQuery('(max-width: 899px) and (min-height: 520px), (min-width: 900px) and (min-height: 760px)')
+  // so they stack from 520px of visible height (small phones like the iPhone SE in Safari); the two-column
+  // desktop card sizes itself to the screen and tightens its type on short laptops, so it stacks from 600px.
+  // Shorter screens get a list.
+  const stacked = useMediaQuery('(max-width: 899px) and (min-height: 520px), (min-width: 900px) and (min-height: 600px)')
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
 
   // The page renders client-side, so the browser can't find #service anchors on load; jump once mounted.

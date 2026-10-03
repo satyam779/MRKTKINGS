@@ -56,7 +56,13 @@ export function Nav() {
                 {page.label}
               </a>
             ))}
-            <a href="#contact" className="btn btn--primary nav__btn" aria-label="Let's Connect" onClick={() => setOpen(false)}>
+            <a
+              href={links.contact}
+              className="btn btn--primary nav__btn"
+              aria-label="Let's Connect"
+              aria-current={isCurrent(links.contact)}
+              onClick={() => setOpen(false)}
+            >
               <span className="nav__btn-label">Let&rsquo;s Connect</span> <ArrowUpRight size={16} />
             </a>
             <button

@@ -7,7 +7,8 @@ export const media = {
   heroVideo: '/media/hero.mp4',
   // Still frame shown while the video loads, or if the phone refuses to autoplay it.
   heroPoster: '/media/hero-poster.webp' as string | undefined,
-  // Services reel under the intro statement (has sound; plays muted until the visitor unmutes).
+  // Services reel under the intro statement. Plays with sound by default (muted only until the visitor's
+  // first tap or click, when the browser requires it).
   reelVideo: '/media/MRKTKings_Services_Reel_v2.mp4',
   // Still frame shown until the reel plays (phones on Data Saver start from this).
   reelPoster: '/media/reel-poster.webp' as string | undefined,
@@ -18,7 +19,8 @@ export const links = {
   work: '/our-work/',
   about: '/about/',
   careers: 'https://mrktkings.com/careers/',
-  contact: 'https://mrktkings.com/contact-us/',
+  // The Let's Connect page. Add ?service=<slug> to pre-select that service in the form.
+  contact: '/contact-us/',
   email: 'mailto:connect@mrktkings.com',
   whatsapp: 'https://wa.me/+917204002430',
   linkedin: 'https://www.linkedin.com/company/mrktkings/',
@@ -97,16 +99,14 @@ export const services = [
 
 // Services hero (/services/). The last word of the headline cycles through `words`.
 export const servicesPage = {
-  badge: 'Services · Creator-led marketing',
   title: 'Our Royal Suite',
+  // The two words set huge with the reel playing inside them. Scrolling zooms into the middle letter of
+  // the second word, so keep it a letter with a solid upright stroke (like the I in SUITE).
+  mask: ['Royal', 'Suite'],
   lead: 'built to',
   words: ['convert.', 'trend.', 'scale.', 'last.'],
-  intro:
-    "We're not your “post-and-pray” social agency. We're a crew of creator-led marketers who actually get the internet, blending creators, strategy, and storytelling to make brands feel alive online.",
-  promiseLabel: 'The MRKTKings promise',
+  intro: 'A creative-led growth powerhouse blending strategy, design, and performance.',
   promises: ['No gimmicks', 'No bots', 'Real collabs', 'Results that last'],
-  // Project tiles fanned out around the services in the hero collage (slugs from `projects`).
-  collageProjects: ['sereneve', 'ethnos', 'baindemer', 'my-natural-detox'],
 }
 
 export const whyUs = {
@@ -290,6 +290,51 @@ export const about = {
     heading: "Let's build something worth remembering.",
     note: 'Open to new brands and collaborations.',
   },
+}
+
+// Let's Connect page (/contact-us/). Step one collects the brief, step two books a discovery call.
+export const connectPage = {
+  eyebrow: "Let's Connect",
+  title: ["Let's build", 'something'],
+  highlight: 'iconic.',
+  intro: "Tell us where your brand is and where you want it to go. Pick a time that suits you, and we'll come to the call with ideas.",
+  // The left-hand column; the current one lights up as the visitor moves through the form.
+  steps: [
+    { title: 'Your brief', text: 'A few details about your brand and goals.' },
+    { title: 'Pick a time', text: 'A 30-minute call, whenever suits you.' },
+    { title: 'Meet the team', text: 'We bring ideas to the call, not a sales pitch.' },
+  ],
+  // `service` is the matching Services page slug, so "Get started" on that service pre-selects the chip.
+  interests: [
+    { label: 'Performance Marketing', service: 'performance-marketing' },
+    { label: 'Social Media', service: 'social-media-management' },
+    { label: 'Branding', service: 'branding' },
+    { label: 'Influencer Marketing', service: 'influencer-marketing' },
+    { label: 'Website & UX/UI', service: 'ux-ui-web-development' },
+    { label: 'Retention Marketing', service: 'retention-marketing' },
+    { label: 'Content Creation' },
+  ] as { label: string; service?: string }[],
+  budgetLabel: 'Project budget (INR)',
+  budgets: ['Under ₹1L', '₹1L – 3L', '₹3L – 10L', '₹10L+'],
+}
+
+// Discovery-call slots, set in Bengaluru time. Visitors see them converted to their own time zone.
+export const booking = {
+  callMinutes: 30,
+  // Days the team takes calls: 0 = Sunday, 1 = Monday … 6 = Saturday.
+  days: [1, 2, 3, 4, 5],
+  // First and last call start times (24-hour, Bengaluru time).
+  from: '10:00',
+  until: '18:30',
+  daysAhead: 30,
+  // The earliest slot on offer is at least this many hours away.
+  noticeHours: 3,
+  timeZone: 'Asia/Kolkata',
+  // Must match `timeZone` (India has no daylight saving, so this never changes).
+  utcOffsetMinutes: 330,
+  zoneLabel: 'IST',
+  eventTitle: 'Discovery call with MRKTKings',
+  eventDetails: "We'll confirm the call and email you a meeting link.",
 }
 
 export const cta = {

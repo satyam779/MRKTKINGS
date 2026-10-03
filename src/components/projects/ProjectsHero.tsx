@@ -7,6 +7,13 @@ import { createInkEngine, type InkEngine } from './inkReveal'
 
 const ease = [0.22, 1, 0.36, 1] as const
 const disciplines = new Set(projects.flatMap((p) => p.services)).size
+// Opening ink flood: starts this long after the page mounts, takes FLOOD_MS to cover the hero, and
+// is skipped if the posters take longer than FLOOD_WAIT_MS to arrive.
+const FLOOD_DELAY_MS = 400
+const FLOOD_MS = 900
+const FLOOD_WAIT_MS = 2000
+// The headline sweep waits this long after the flood has filled, so it plays once the flood has dried.
+const SWEEP_DELAY_MS = 1500
 
 export function ProjectsHero() {
   const last = projectsPage.title.length - 1
@@ -49,31 +56,46 @@ export function ProjectsHero() {
     engine.current = ink
     setReady(true)
 
-    // One sweep through the headline after it lands, so the effect introduces itself.
-    // Measured once the web fonts are in, so the path follows the real line breaks.
+    // On arrival the ink floods in from every edge until the whole hero shows the work and dries off in
+    // patches, then one sweep through the headline introduces the brush. The flood waits for the
+    // posters (skipped if they are slow, rather than landing late), and the sweep is measured once the
+    // web fonts are in, so the path follows the real line breaks.
     let alive = true
+    let sweepTimer = 0
     const intro = window.setTimeout(async () => {
+      const posters = await Promise.race([
+        ink.ready.then(() => true),
+        new Promise<boolean>((resolve) => window.setTimeout(() => resolve(false), FLOOD_WAIT_MS)),
+      ])
+      if (!alive) return
+      if (posters) ink.flood(FLOOD_MS)
       await document.fonts.ready
-      const title = titleRef.current
-      const section = sectionRef.current
-      if (!alive || !title || !section) return
-      const s = section.getBoundingClientRect()
-      const t = title.getBoundingClientRect()
-      const left = t.left - s.left
-      const top = t.top - s.top
-      const width = Math.min(t.width, s.width * 0.9)
-      ink.sweep(
-        (p) => ({
-          x: left - 40 + (width + 80) * p,
-          y: top + t.height * (0.5 + 0.3 * Math.sin(p * Math.PI * 2.1 + 0.4)),
-        }),
-        1700,
+      sweepTimer = window.setTimeout(
+        () => {
+          const title = titleRef.current
+          const section = sectionRef.current
+          if (!alive || !title || !section) return
+          const s = section.getBoundingClientRect()
+          const t = title.getBoundingClientRect()
+          const left = t.left - s.left
+          const top = t.top - s.top
+          const width = Math.min(t.width, s.width * 0.9)
+          ink.sweep(
+            (p) => ({
+              x: left - 40 + (width + 80) * p,
+              y: top + t.height * (0.5 + 0.3 * Math.sin(p * Math.PI * 2.1 + 0.4)),
+            }),
+            1700,
+          )
+        },
+        posters ? FLOOD_MS + SWEEP_DELAY_MS : 0,
       )
-    }, 1150)
+    }, FLOOD_DELAY_MS)
 
     return () => {
       alive = false
       window.clearTimeout(intro)
+      window.clearTimeout(sweepTimer)
       ink.destroy()
       engine.current = null
       setReady(false)

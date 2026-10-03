@@ -1,204 +1,199 @@
-import type { MotionStyle, MotionValue, Variants } from 'framer-motion'
 import { AnimatePresence, motion, useInView, useReducedMotion, useScroll, useTransform } from 'framer-motion'
-import { useEffect, useRef, useState } from 'react'
-import { links, media, projects, services, servicesPage } from '../content'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { links, media, services, servicesPage } from '../content'
+import { useAutoplay } from '../useAutoplay'
 import { ArrowUpRight } from './Icons'
 
 const ease = [0.16, 1, 0.3, 1] as const
-const pad = (n: number) => String(n).padStart(2, '0')
+// How far the type zooms in: by this scale the camera is deep inside one letter and the film fills the screen.
+const ZOOM = 46
 
-const copy: Variants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.12, delayChildren: 0.15 } },
-}
-const item: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.9, ease } },
-}
-const chip: Variants = {
-  hidden: { opacity: 0, y: 12, filter: 'blur(4px)' },
-  visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.5, ease } },
-}
-const card: Variants = {
-  hidden: { opacity: 0, scale: 0.94, filter: 'blur(8px)' },
-  visible: { opacity: 1, scale: 1, filter: 'blur(0px)', transition: { duration: 0.8, ease } },
+// Scroll timeline across the pinned hero, as fractions of its scroll length.
+const at = {
+  copyOut: [0, 0.12],
+  zoom: [0.04, 0.56],
+  maskOut: [0.48, 0.58],
+  indexIn: [0.6, 0.8],
 }
 
-// Fanned collage slots, back to front. `side` and `depth` drive how far each card fans out on scroll.
-type Slot = { top: string; left?: string; right?: string; width: string; rotate: number; z: number; side: number; depth: number }
-const slot = {
-  L4: { top: '-30%', left: '-15%', width: '24%', rotate: -15, z: 1, side: -1, depth: 4 },
-  R4: { top: '-30%', right: '-15%', width: '24%', rotate: 15, z: 1, side: 1, depth: 4 },
-  L3: { top: '-10%', left: '-5%', width: '28%', rotate: -10, z: 2, side: -1, depth: 3 },
-  R3: { top: '-10%', right: '-5%', width: '28%', rotate: 10, z: 2, side: 1, depth: 3 },
-  L2: { top: '10%', left: '5%', width: '34%', rotate: -5, z: 3, side: -1, depth: 2 },
-  R2: { top: '10%', right: '5%', width: '34%', rotate: 5, z: 3, side: 1, depth: 2 },
-  L1: { top: '25%', left: '15%', width: '42%', rotate: -2, z: 4, side: -1, depth: 1 },
-  R1: { top: '25%', right: '15%', width: '42%', rotate: 2, z: 4, side: 1, depth: 1 },
-  front: { top: '40%', left: '24%', width: '52%', rotate: 0, z: 10, side: 0, depth: 0 },
-  back: { top: '15%', left: '38%', width: '24%', rotate: 0, z: 0, side: 0, depth: 0 },
-} satisfies Record<string, Slot>
-
-type Tile = { key: string; href: string; image: string; label: string; num?: string; title: string; meta?: string; slot: Slot }
-
-// Services take the inner slots (first service up front); projects frame the outside.
-const serviceSlots = [slot.front, slot.L1, slot.R1, slot.L2, slot.R2, slot.back]
-const projectSlots = [slot.L4, slot.R4, slot.L3, slot.R3]
-const tiles: Tile[] = [
-  ...services.slice(0, serviceSlots.length).map((s, i) => ({
-    key: s.slug,
-    href: `#${s.slug}`,
-    image: s.image,
-    label: `${s.title}: jump to service`,
-    num: pad(i + 1),
-    title: s.title,
-    slot: serviceSlots[i],
-  })),
-  ...servicesPage.collageProjects
-    .map((slug) => projects.find((p) => p.slug === slug))
-    .filter((p) => p !== undefined)
-    .slice(0, projectSlots.length)
-    .map((p, i) => ({
-      key: p.slug,
-      href: `${links.work}#${p.slug}`,
-      image: p.poster,
-      label: `${p.name}: view project`,
-      title: p.name,
-      meta: p.industry,
-      slot: projectSlots[i],
-    })),
-]
-
+// Opens on the suite's name set huge, with the brand film playing inside the letters. Scrolling flies
+// the camera into the middle letter until the film fills the screen, then the six services surface over
+// it as an index into the page below. (The brand film rather than the services reel: the reel's text
+// cards and black stretches would blank out the letters.)
 export function ServicesHero() {
   const ref = useRef<HTMLElement>(null)
-  const collageRef = useRef<HTMLDivElement>(null)
+  const maskRef = useRef<HTMLDivElement>(null)
+  const pivotRef = useRef<HTMLSpanElement>(null)
+  const copyRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
   const reduce = useReducedMotion()
   const inView = useInView(ref)
+  const [origin, setOrigin] = useState('50% 50%')
 
-  // The fan opens up as the collage scrolls through the viewport.
-  const { scrollYProgress } = useScroll({ target: collageRef, offset: ['start end', 'end start'] })
-  const spread = useTransform(scrollYProgress, [0.25, 0.75], [0, 1])
+  const { scrollYProgress: p } = useScroll({ target: ref, offset: ['start start', 'end end'] })
+  const copyOpacity = useTransform(p, at.copyOut, [1, 0])
+  const copyY = useTransform(p, at.copyOut, [0, 48])
+  // Scale geometrically so the zoom feels like constant speed rather than a slow start and a sudden rush.
+  const scale = useTransform(p, (v) => ZOOM ** clamp01((v - at.zoom[0]) / (at.zoom[1] - at.zoom[0])))
+  const maskOpacity = useTransform(p, at.maskOut, [1, 0])
+  const scrim = useTransform(p, at.indexIn, [0, 1])
+  const indexOpacity = useTransform(p, at.indexIn, [0, 1])
+  const indexY = useTransform(p, at.indexIn, [48, 0])
+  const copyEvents = useTransform(p, (v) => (v < at.copyOut[1] * 0.6 ? 'auto' : 'none'))
+  const indexEvents = useTransform(p, (v) => (v > at.indexIn[0] + 0.05 ? 'auto' : 'none'))
+
+  // The letters centre in the space above the copy, so reserve its height; then zoom around the centre of
+  // the pivot letter, measured from layout so the transforms don't skew it.
+  useLayoutEffect(() => {
+    const mask = maskRef.current
+    const pivot = pivotRef.current
+    const copy = copyRef.current
+    if (!mask || !pivot || !copy) return
+    const measure = () => {
+      mask.style.setProperty('--copy-h', `${copy.offsetHeight}px`)
+      let x = pivot.offsetWidth / 2
+      let y = pivot.offsetHeight / 2
+      for (let el: HTMLElement | null = pivot; el && el !== mask; el = el.offsetParent as HTMLElement | null) {
+        x += el.offsetLeft
+        y += el.offsetTop
+      }
+      setOrigin(`${x}px ${y}px`)
+    }
+    measure()
+    document.fonts.ready.then(measure)
+    const ro = new ResizeObserver(measure)
+    ro.observe(mask)
+    ro.observe(copy)
+    return () => ro.disconnect()
+  }, [])
+
+  // The film only runs while the hero is on screen.
+  useAutoplay(videoRef, inView)
+
+  // Keyboard users can reach links in either layer, so bring that layer on screen when it takes focus.
+  const scrollToPhase = (phase: number) => {
+    const el = ref.current
+    if (!el || reduce) return
+    const top = el.getBoundingClientRect().top + window.scrollY
+    window.scrollTo({ top: top + (el.offsetHeight - window.innerHeight) * phase, behavior: 'instant' })
+  }
+
+  const [first, last] = servicesPage.mask
+  const mid = Math.floor(last.length / 2)
 
   return (
-    <section ref={ref} className="svc-hero" aria-labelledby="services-title">
-      <div className="svc-hero__dots" aria-hidden="true" />
-      <motion.div
-        className="svc-hero__glow"
-        aria-hidden="true"
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1.4, delay: 0.3, ease }}
-      />
-      <div className="svc-hero__rings" aria-hidden="true">
-        <span />
-      </div>
-      <div className="svc-hero__frame" aria-hidden="true">
-        <span className="svc-hero__cross svc-hero__cross--tl" />
-        <span className="svc-hero__cross svc-hero__cross--tr" />
-        <span className="svc-hero__cross svc-hero__cross--bl" />
-        <span className="svc-hero__cross svc-hero__cross--br" />
-      </div>
+    <section
+      ref={ref}
+      className={`svc-hero${reduce ? ' svc-hero--still' : ''}`}
+      aria-labelledby="services-title"
+    >
+      <div className="svc-hero__pin">
+        <video
+          ref={videoRef}
+          className="svc-hero__reel"
+          src={media.heroVideo}
+          poster={media.heroPoster}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-hidden="true"
+        />
 
-      <div className="container svc-hero__inner">
-        <motion.div className="svc-hero__copy" variants={copy} initial="hidden" animate="visible">
-          <motion.span className="svc-hero__badge" variants={item}>
-            <img src={media.crown} alt="" width={16} height={16} />
-            {servicesPage.badge}
-          </motion.span>
-
-          <h1 id="services-title" className="svc-hero__title">
-            <span className="sr-only">
-              {`${servicesPage.title} ${servicesPage.lead} ${servicesPage.words.join(' ')}`}
-            </span>
-            <motion.span className="svc-hero__line" variants={item} aria-hidden="true">
-              {servicesPage.title}
-            </motion.span>
-            <motion.span className="svc-hero__line" variants={item} aria-hidden="true">
-              {servicesPage.lead} <Rotator words={servicesPage.words} paused={!inView || !!reduce} />
-            </motion.span>
-          </h1>
-
-          <motion.p className="svc-hero__sub" variants={item}>
-            {servicesPage.intro}
-          </motion.p>
-
-          <motion.div className="svc-hero__ctas" variants={item}>
-            <a href={links.contact} className="btn btn--primary">
-              Let&rsquo;s Connect <ArrowUpRight size={18} />
-            </a>
-            <a href={`#${services[0].slug}`} className="btn btn--ghost">
-              Explore services
-            </a>
-          </motion.div>
-
-          <motion.div className="svc-hero__proof" variants={item}>
-            <p className="svc-hero__proof-label">{servicesPage.promiseLabel}</p>
-            <motion.ul
-              className="svc-hero__chips"
-              variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1, delayChildren: 0.3 } } }}
+        {/* Black sheet with white type, multiplied over the film: the film only shows through the letters. */}
+        <motion.div
+          ref={maskRef}
+          className="svc-hero__mask"
+          aria-hidden="true"
+          style={reduce ? undefined : { scale, opacity: maskOpacity, transformOrigin: origin }}
+        >
+          <span className="svc-hero__line">
+            <motion.span
+              initial={{ y: '105%' }}
+              animate={{ y: '0%' }}
+              transition={{ duration: 1.1, delay: 0.15, ease }}
             >
-              {servicesPage.promises.map((p) => (
-                <motion.li key={p} variants={chip}>
-                  {p}
-                </motion.li>
-              ))}
-            </motion.ul>
-          </motion.div>
+              {first}
+            </motion.span>
+          </span>
+          <span className="svc-hero__line">
+            <motion.span
+              initial={{ y: '105%' }}
+              animate={{ y: '0%' }}
+              transition={{ duration: 1.1, delay: 0.27, ease }}
+            >
+              {last.slice(0, mid)}
+              <span ref={pivotRef}>{last[mid]}</span>
+              {last.slice(mid + 1)}
+            </motion.span>
+          </span>
         </motion.div>
+
+        {!reduce && <motion.div className="svc-hero__scrim" aria-hidden="true" style={{ opacity: scrim }} />}
 
         <motion.div
-          ref={collageRef}
-          className="svc-collage"
-          initial="hidden"
-          animate="visible"
-          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08, delayChildren: 0.8 } } }}
+          ref={copyRef}
+          className="container svc-hero__copy"
+          style={reduce ? undefined : { opacity: copyOpacity, y: copyY, pointerEvents: copyEvents }}
+          onFocus={() => scrollToPhase(0)}
         >
-          {tiles.map((t) => (
-            <CollageCard key={t.key} tile={t} spread={spread} still={!!reduce} />
-          ))}
+          <h1 id="services-title" className="sr-only">
+            {`${servicesPage.title} ${servicesPage.lead} ${servicesPage.words.join(' ')}`}
+          </h1>
+          <motion.p
+            className="svc-hero__tagline"
+            aria-hidden="true"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.7, ease }}
+          >
+            {servicesPage.lead} <Rotator words={servicesPage.words} paused={!inView || !!reduce} />
+          </motion.p>
+          <motion.div
+            className="svc-hero__foot"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.85, ease }}
+          >
+            <p className="svc-hero__sub">{servicesPage.intro}</p>
+            <div className="svc-hero__ctas">
+              <a href={links.contact} className="btn btn--primary">
+                Let&rsquo;s Connect <ArrowUpRight size={18} />
+              </a>
+              <a href={`#${services[0].slug}`} className="btn btn--ghost">
+                Explore services
+              </a>
+            </div>
+          </motion.div>
         </motion.div>
+
+        {!reduce && (
+          <motion.nav
+            className="container svc-hero__index"
+            aria-label="Services"
+            style={{ opacity: indexOpacity, y: indexY, pointerEvents: indexEvents }}
+            onFocus={() => scrollToPhase(0.92)}
+          >
+            <p className="svc-hero__promise">{servicesPage.promises.map((s) => `${s}.`).join(' ')}</p>
+            <ul>
+              {services.map((s) => (
+                <li key={s.slug}>
+                  <a href={`#${s.slug}`}>
+                    <span className="svc-hero__index-title">{s.title}</span>
+                    <span className="svc-hero__index-line">{s.tagline}</span>
+                    <ArrowUpRight size={18} />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </motion.nav>
+        )}
       </div>
     </section>
   )
 }
 
-function CollageCard({ tile, spread, still }: { tile: Tile; spread: MotionValue<number>; still: boolean }) {
-  const { slot: s } = tile
-  const x = useTransform(spread, (v) => `${s.side * v * (s.depth * 5 + 4)}%`)
-  const y = useTransform(spread, (v) => (s.side === 0 ? v * -24 : v * s.depth * -6))
-  const rotate = useTransform(spread, (v) => s.rotate + s.side * v * (2 + s.depth * 1.5))
-
-  const style: MotionStyle & { '--z': number } = {
-    top: s.top,
-    left: s.left,
-    right: s.right,
-    width: s.width,
-    '--z': s.z,
-    ...(still ? { rotate: s.rotate } : { x, y, rotate }),
-  }
-
-  return (
-    <motion.div className="svc-collage__slot" style={style} variants={card}>
-      <motion.a
-        href={tile.href}
-        className="svc-card"
-        aria-label={tile.label}
-        whileHover={{ scale: 1.05 }}
-        whileFocus={{ scale: 1.05 }}
-        transition={{ duration: 0.4, ease }}
-      >
-        {/* Title bar sits on top: in the fan, the card in front always covers the bottom edge. */}
-        <span className="svc-card__cap">
-          {tile.num && <span className="svc-card__num">{tile.num}</span>}
-          <span className="svc-card__title">{tile.title}</span>
-          {tile.meta && <em>{tile.meta}</em>}
-          <ArrowUpRight size={14} />
-        </span>
-        <img src={tile.image} alt="" width={512} height={320} decoding="async" />
-      </motion.a>
-    </motion.div>
-  )
-}
+const clamp01 = (v: number) => Math.min(Math.max(v, 0), 1)
 
 // Swaps the last headline word every few seconds. The widest word reserves the space so nothing shifts.
 function Rotator({ words, paused }: { words: string[]; paused: boolean }) {

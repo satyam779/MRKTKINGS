@@ -5,7 +5,7 @@ import { Footer } from './Footer'
 import { Nav } from './Nav'
 
 // Shared page shell: nav, closing call-to-action and footer.
-// Pass cta={false} when the page provides its own #contact section.
+// Pass cta={false} when the page provides its own #contact section, or is the contact page itself.
 export function Layout({ children, cta = true }: { children: ReactNode; cta?: boolean }) {
   return (
     // "user" turns off transform/layout animations for visitors who prefer reduced motion.
