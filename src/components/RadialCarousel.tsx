@@ -335,6 +335,8 @@ function FeatureCard({ item, size, focus, onOpen, onPrev, onNext }: FeatureCardP
           className="radial__media"
           src={item.image}
           alt=""
+          loading="lazy"
+          decoding="async"
           draggable={false}
           style={{ borderRadius: 24 }}
         />
@@ -426,6 +428,9 @@ function Thumb({ item, index, total, rotation, radius, size, focused, onPick }: 
           layoutCrossfade={false}
           src={item.image}
           alt=""
+          // The ring sits far down the page; its images load as it nears the screen.
+          loading="lazy"
+          decoding="async"
           draggable={false}
           style={{ borderRadius: 13 }}
         />

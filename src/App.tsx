@@ -12,9 +12,9 @@ export default function App() {
       <Hero />
       <Marquee />
       <Intro />
+      <Work />
       <Services />
       <WhyUs />
-      <Work />
     </Layout>
   )
 }

@@ -96,8 +96,16 @@ If an email ever fails, the booking itself is safe: it's saved before the email 
 
 ## Media
 
-The services reel ships in two sizes: `services-reel-1080.mp4` (5.2 MB) for screens 1024px and wider and
-`services-reel-720.mp4` (3.7 MB) for phones and small tablets. Every file in `public/media/` is used by the site.
+The hero film and the services reel each ship in two sizes: the 1080p file for screens 1024px and wider, and a
+720p copy for phones and small tablets (`hero.mp4` 4.4 MB / `hero-720.mp4` 2.1 MB, `services-reel-1080.mp4`
+5.2 MB / `services-reel-720.mp4` 3.7 MB). Every file in `public/media/` is used by the site. Everything is H.264,
+which every phone decodes in hardware, so playback stays smooth.
+
+The hero film has no separate master; the 720p copy is made from `hero.mp4`:
+
+```sh
+ffmpeg -i public/media/hero.mp4 -vf scale=1280:720:flags=lanczos -c:v libx264 -preset slow -crf 27 -profile:v high -pix_fmt yuv420p -an -movflags +faststart public/media/hero-720.mp4
+```
 
 The untouched 23 MB master isn't kept in the project any more; get it back from git history when you need to
 re-export, then encode with ffmpeg:
@@ -107,6 +115,31 @@ git show 795f771:public/media/MRKTKings_Services_Reel_v2.mp4 > master.mp4
 ffmpeg -i master.mp4 -c:v libx264 -preset slow -crf 26 -profile:v high -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart public/media/services-reel-1080.mp4
 ffmpeg -i master.mp4 -vf scale=1280:-2:flags=lanczos -c:v libx264 -preset slow -crf 23 -tune animation -profile:v high -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart public/media/services-reel-720.mp4
 ```
+
+Portrait project reels (`work-glow-glossary`, `work-guugly-wuugly`, `work-saray-and-valley`) come from the client's
+1080×1920 masters, which aren't kept in the project (ask the client for them). The reels always play muted, so the
+audio is dropped. Each poster is one frame from the reel:
+
+```sh
+ffmpeg -i master.mp4 -vf scale=540:960:flags=lanczos -c:v libx264 -preset slow -crf 27 -profile:v high -pix_fmt yuv420p -an -movflags +faststart public/media/work-<slug>.mp4
+ffmpeg -ss <seconds> -i public/media/work-<slug>.mp4 -frames:v 1 -c:v libwebp -quality 78 public/media/work-<slug>-poster.webp
+```
+
+Tapping a reel in the project popup plays it full size with sound from `work-<slug>-full.mp4` (the project's
+`fullVideo`): 720p with the audio, `work-glow-glossary-full.mp4` (7.9 MB, crf 25) and
+`work-saray-and-valley-full.mp4` (7.4 MB, crf 24). The Guugly Wuugly master has no audio, so its popup opens the
+muted reel full size.
+
+The client's untouched masters aren't kept in the project (ask the client for them). To re-export, put a master
+in a `masters/` folder at the project root (it's in `.gitignore`, so it's never committed or shipped) and run:
+
+```sh
+ffmpeg -i masters/<slug>.mp4 -vf scale=720:1280:flags=lanczos -c:v libx264 -preset slow -crf 25 -profile:v high -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart public/media/work-<slug>-full.mp4
+```
+
+The square project reels (`work-sereneve`, `work-baindemer`, `work-my-natural-detox`, `work-ethik`) have no
+masters either; they were re-encoded from the previous files at crf 24–26 (about half the size, VMAF 93+). The
+originals are in git history (`git show 6c6ccc4:public/media/work-<slug>.mp4`).
 
 ## Keeping Supabase awake
 

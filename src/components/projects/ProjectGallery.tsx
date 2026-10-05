@@ -66,6 +66,7 @@ export function ProjectGallery() {
                     project={p}
                     number={projects.indexOf(p) + 1}
                     hidden={open?.slug === p.slug}
+                    paused={!!open}
                     onOpen={markOpened}
                   />
                 </motion.li>

@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useInView, useReducedMotion, useScroll, useTra
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { links, media, services, servicesPage } from '../content'
 import { useAutoplay } from '../useAutoplay'
+import { videoSrc } from '../videoSrc'
 import { ArrowUpRight } from './Icons'
 
 const ease = [0.16, 1, 0.3, 1] as const
@@ -26,6 +27,7 @@ export function ServicesHero() {
   const pivotRef = useRef<HTMLSpanElement>(null)
   const copyRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const [src] = useState(() => videoSrc(media.heroVideo, media.heroVideoSmall))
   const reduce = useReducedMotion()
   const inView = useInView(ref)
   const [origin, setOrigin] = useState('50% 50%')
@@ -91,7 +93,7 @@ export function ServicesHero() {
         <video
           ref={videoRef}
           className="svc-hero__reel"
-          src={media.heroVideo}
+          src={src}
           poster={media.heroPoster}
           muted
           loop

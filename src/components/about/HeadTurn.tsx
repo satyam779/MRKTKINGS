@@ -3,12 +3,18 @@ import { about } from '../../content'
 
 const { path, count, center, width, height } = about.turn
 const frameSrc = (i: number) => `${path}${String(i).padStart(2, '0')}.webp`
+// On touch screens he sways this share of the way to each side.
+const SWAY = 0.6
+
+// Share of the range left (s < 0) or right (s > 0) of the facing-camera frame.
+const toFrame = (s: number) => center + s * (s < 0 ? center : count - 1 - center)
 
 // Facing-camera frame first, then every 16th, 8th, 4th... so the turn works early and fills in.
-function loadOrder() {
+// Frames outside first..last, or finer than `finest`, are never loaded.
+function loadOrder(first: number, last: number, finest: number) {
   const order = [center]
-  for (let step = 16; step >= 1; step /= 2) {
-    for (let i = 0; i < count; i += step) if (!order.includes(i)) order.push(i)
+  for (let step = 16; step >= finest; step /= 2) {
+    for (let i = 0; i < count; i += step) if (i >= first && i <= last && !order.includes(i)) order.push(i)
   }
   return order
 }
@@ -50,12 +56,9 @@ export function HeadTurn() {
       ctx.drawImage(frames[n]!, 0, 0)
       drawn = n
     }
-    // Share of the range left (s < 0) or right (s > 0) of the facing-camera frame.
-    const toFrame = (s: number) => center + s * (s < 0 ? center : count - 1 - center)
-
     const tick = (t: number) => {
       raf = 0
-      if (!follow) target = toFrame(Math.sin(t / 1600) * 0.6)
+      if (!follow) target = toFrame(Math.sin(t / 1600) * SWAY)
       current += (target - current) * 0.12
       draw()
       if (!follow || Math.abs(target - current) > 0.05) start()
@@ -84,7 +87,12 @@ export function HeadTurn() {
     observer.observe(canvas)
     if (follow) window.addEventListener('pointermove', onMove)
 
-    for (const i of loadOrder()) {
+    // The slow sway on touch screens never reaches the outer frames and doesn't need every one in between,
+    // so phones load about a third of them (less to download and hold in memory).
+    const order = follow
+      ? loadOrder(0, count - 1, 1)
+      : loadOrder(Math.floor(toFrame(-SWAY)) - 1, Math.ceil(toFrame(SWAY)) + 1, 2)
+    for (const i of order) {
       const img = new Image()
       img.src = frameSrc(i)
       img

@@ -1,14 +1,15 @@
 import { motion, useInView, useReducedMotion, useScroll, useTransform } from 'framer-motion'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { hero, links, media } from '../content'
 import { useAutoplay } from '../useAutoplay'
-import { ArrowUpRight } from './Icons'
+import { videoSrc } from '../videoSrc'
 
 const ease = [0.22, 1, 0.36, 1] as const
 
 export function Hero() {
   const ref = useRef<HTMLElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const [src] = useState(() => videoSrc(media.heroVideo, media.heroVideoSmall))
   const reduce = useReducedMotion()
   const inView = useInView(ref)
 
@@ -27,7 +28,7 @@ export function Hero() {
       <motion.div className="hero__media" style={reduce ? undefined : { scale: videoScale }}>
         <video
           ref={videoRef}
-          src={media.heroVideo}
+          src={src}
           poster={media.heroPoster}
           muted
           loop
@@ -42,15 +43,6 @@ export function Hero() {
         className="container hero__content"
         style={reduce ? undefined : { y: contentY, opacity: contentOpacity }}
       >
-        <motion.span
-          className="eyebrow"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2, ease }}
-        >
-          {hero.eyebrow}
-        </motion.span>
-
         <h1 className="hero__title">
           {lines.map((line, i) => (
             <span key={line.text} className="hero__line">
@@ -67,26 +59,16 @@ export function Hero() {
         </h1>
 
         <motion.div
-          className="hero__bottom"
+          className="hero__actions"
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.85, ease }}
         >
-          <p className="hero__sub">{hero.sub}</p>
-          <div className="hero__actions">
-            <a href={links.contact} className="btn btn--primary">
-              Enquire Now <ArrowUpRight size={18} />
-            </a>
-            <a href="#work" className="btn btn--ghost">
-              See our work
-            </a>
-          </div>
+          <a href={links.contact} className="hero__enquire">
+            Enquire Now
+          </a>
         </motion.div>
       </motion.div>
-
-      <span className="hero__scroll" aria-hidden="true">
-        Scroll to explore
-      </span>
     </section>
   )
 }

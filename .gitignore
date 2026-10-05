@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Client video masters, if you bring them in to re-encode (never committed or shipped)
+masters

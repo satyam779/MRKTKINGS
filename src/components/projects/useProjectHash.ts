@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-// Keeps the open project in the URL hash (/our-work/#ethnos) so it can be linked to,
+// Keeps the open project in the URL hash (/our-work/#sereneve) so it can be linked to,
 // and so the browser Back button closes the popup.
 export function useProjectHash(slugs: string[]) {
   const read = useCallback(() => {

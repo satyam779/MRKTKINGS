@@ -18,6 +18,8 @@
   --font-display: 'Unbounded', 'Arial Black', sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-accent: 'Instrument Serif', Georgia, serif;
+  /* Homepage hero headline and its button, matching the live site. Loaded on the homepage only. */
+  --font-hero: 'Michroma', 'Arial', sans-serif;
   /* Action buttons speak in the display face, like the nav and headlines. Choices (filters, form answers,
      times) stay in the body face, which reads better for short data. */
   --btn-font: 500 14px/1 var(--font-display);
@@ -227,6 +229,14 @@ section[id] {
   backdrop-filter: blur(16px) saturate(140%);
   border-bottom-color: var(--border);
 }
+/* Phones: re-blurring the page under the bar on every scroll frame makes scrolling stutter, so the bar goes
+   near-solid instead. */
+@media (hover: none) {
+  .nav--solid {
+    background: rgba(5, 5, 5, 0.94);
+    backdrop-filter: none;
+  }
+}
 .nav__inner {
   display: flex;
   align-items: center;
@@ -236,6 +246,12 @@ section[id] {
 .nav__logo img {
   height: 24px;
   width: auto;
+}
+/* Folding and other very narrow phones: a smaller logo keeps the menu buttons on screen. */
+@media (max-width: 339px) {
+  .nav__logo img {
+    height: 20px;
+  }
 }
 .nav__actions {
   display: flex;
@@ -401,9 +417,9 @@ section[id] {
   position: relative;
   min-height: 100svh;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   overflow: hidden;
-  padding: 140px 0 clamp(48px, 8vh, 96px);
+  padding: 120px 0;
   background:
     radial-gradient(120% 70% at 50% 110%, rgba(225, 6, 0, 0.75), transparent 60%),
     var(--bg);
@@ -424,20 +440,22 @@ section[id] {
   z-index: 1;
   background:
     linear-gradient(180deg, rgba(5, 5, 5, 0.7) 0%, rgba(5, 5, 5, 0.15) 35%, rgba(5, 5, 5, 0.85) 100%),
-    radial-gradient(80% 60% at 20% 80%, rgba(5, 5, 5, 0.6), transparent 70%);
+    radial-gradient(80% 60% at 50% 55%, rgba(5, 5, 5, 0.6), transparent 70%);
 }
 .hero__content {
   position: relative;
   z-index: 2;
+  text-align: center;
 }
 .hero__title {
-  margin: 24px 0 28px;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: clamp(44px, 9.5vw, 148px);
-  line-height: 0.95;
-  letter-spacing: -0.035em;
-  text-transform: uppercase;
+  margin: 0 0 34px;
+  font-family: var(--font-hero);
+  /* Michroma has one weight; like the live site, the browser draws this bolder version of it. */
+  font-weight: 700;
+  /* Same size as the live site. Below 36px only on the narrowest phones, where "Brands with" (about 7.9em
+     wide) would otherwise be cut off by its line's reveal mask. */
+  font-size: clamp(min(36px, (100vw - 2 * var(--gutter)) / 7.9), 8.055vw, 116px);
+  line-height: 1;
 }
 .hero__line {
   display: block;
@@ -447,42 +465,41 @@ section[id] {
 .hero__line > span {
   display: inline-block;
 }
+/* Michroma's "g" drops further than the reveal mask allows, so open the mask without changing line spacing. */
+.hero__title .hero__line {
+  padding-bottom: 0.24em;
+  margin-bottom: -0.18em;
+}
 .hero__highlight {
   color: var(--red);
   text-shadow: 0 0 60px var(--red-glow);
 }
-.hero__bottom {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 32px;
-}
-.hero__sub {
-  max-width: 440px;
-  font-size: clamp(17px, 1.6vw, 20px);
-  color: #d4d4d4;
-}
 .hero__actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  justify-content: center;
 }
-.hero__scroll {
-  position: absolute;
-  right: var(--gutter);
-  top: 50%;
-  z-index: 2;
-  display: none;
-  writing-mode: vertical-rl;
-  font-size: 12px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--text-muted);
+/* Outlined button from the live site: squared corners that round into a pill and fill white on hover. */
+.hero__enquire {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 40px 24px;
+  border: 1px solid #fff;
+  border-radius: 15px;
+  font: 600 18px/1 var(--font-hero);
+  letter-spacing: 0.05em;
+  color: #fff;
+  white-space: nowrap;
+  transition:
+    color 0.5s var(--ease-out),
+    background-color 0.5s var(--ease-out),
+    border-radius 0.5s var(--ease-out);
 }
-@media (min-width: 900px) {
-  .hero__scroll {
-    display: block;
+@media (hover: hover) {
+  .hero__enquire:hover {
+    color: #000;
+    background-color: #fff;
+    border-radius: 50px;
   }
 }
 
@@ -506,7 +523,8 @@ section[id] {
 .marquee__track {
   display: flex;
   width: max-content;
-  animation: marquee 32s linear infinite;
+  /* Each copy runs the project list twice; this keeps the band at an easy reading pace. */
+  animation: marquee 46s linear infinite;
 }
 .marquee__item {
   display: flex;
@@ -524,6 +542,18 @@ section[id] {
   height: 28px;
   filter: brightness(0) invert(1);
 }
+.marquee__item a {
+  transition: color 0.25s var(--ease-out);
+}
+/* With a mouse the band stops under the pointer, and the name being pointed at turns black. */
+@media (hover: hover) {
+  .marquee:hover .marquee__track {
+    animation-play-state: paused;
+  }
+  .marquee__item a:hover {
+    color: #000;
+  }
+}
 @keyframes marquee {
   to {
     transform: translateX(-50%);
@@ -531,117 +561,236 @@ section[id] {
 }
 
 /* ---------- Intro ---------- */
+/* A card in the style of eloqwnt.com's "Who we are": label and showreel on the left, statement on the right.
+   Phones stack it: label, statement, then the showreel. */
 .intro {
   padding: var(--section-y) 0;
+  /* The card starts at 125% before shrinking in; without this, phones zoom out to fit its overhang. */
+  overflow-x: clip;
+}
+.intro__card {
+  display: grid;
+  grid-template-areas: 'head' 'body' 'reel';
+  gap: 32px;
+  padding: clamp(20px, 4.2vw, 60px);
+  border: 1px solid var(--border);
+  border-radius: clamp(20px, 2.4vw, 32px);
+  background:
+    radial-gradient(60% 70% at 100% 0%, rgba(225, 6, 0, 0.16), transparent 70%),
+    var(--surface);
 }
 .intro__head {
+  grid-area: head;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 24px;
+  gap: 8px 16px;
   align-items: baseline;
-  margin-bottom: 40px;
+}
+.intro__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 500;
+}
+.intro__label::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 12px var(--red-glow);
 }
 .intro__tag {
   font-family: var(--font-accent);
   font-style: italic;
-  font-size: 22px;
+  font-size: 20px;
   color: var(--text-muted);
+}
+.intro__body {
+  grid-area: body;
 }
 .intro__statement {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: clamp(28px, 4.6vw, 64px);
+  font-size: clamp(26px, 3.2vw, 44px);
   line-height: 1.15;
   letter-spacing: -0.02em;
-  max-width: 22ch;
 }
 .intro__statement span {
   display: inline-block;
   margin-right: 0.25em;
 }
-/* Services reel: opens from a small window to full width on scroll. Reel.tsx sets --p from
-   0 (small window) to 1 (open); the values below shape the opening, with their own set for phones. */
+/* Instrument Serif runs small next to Unbounded, so the accent word is set a little larger. */
+.intro__statement .accent {
+  font-size: 1.2em;
+  line-height: 1;
+}
+.intro__cta {
+  margin-top: clamp(28px, 3.4vw, 44px);
+}
+
+/* Showreel: a muted preview that is itself the button opening the full-size reel. On hover it gets a red
+   outline. */
 .reel {
-  --p: 1;
-  --inset-y: 16%;
-  --inset-x: 22%;
-  --round-from: 56px;
-  --round-to: 20px;
-  --reveal: clamp(0, (var(--p) - 0.7) / 0.3, 1);
-  position: relative;
-  margin-top: clamp(56px, 8vw, 96px);
+  grid-area: reel;
+  width: 100%;
 }
-.reel__glow {
-  position: absolute;
-  inset: 18% 10% -6%;
-  border-radius: 50%;
-  background: var(--red-glow);
-  filter: blur(90px);
-  opacity: var(--reveal);
-  pointer-events: none;
-}
-.reel__frame {
+.reel__media {
   position: relative;
-  aspect-ratio: 16 / 9;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  padding: 0;
+  border: 0;
   overflow: hidden;
-  border-radius: var(--round-to);
-  background: var(--surface);
-  clip-path: inset(
-    calc(var(--inset-y) * (1 - var(--p))) calc(var(--inset-x) * (1 - var(--p)))
-      round calc(var(--round-from) + (var(--round-to) - var(--round-from)) * var(--p))
-  );
+  border-radius: 20px;
+  background: var(--surface-2);
+  box-shadow: 0 0 0 1px var(--border);
+  cursor: pointer;
+  transition: box-shadow 0.4s var(--ease-out);
 }
-.reel__video {
+.reel__media video {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scale(calc(1.35 - 0.35 * var(--p)));
+  transition: transform 0.8s var(--ease-out);
 }
-.reel__shade {
+.reel__play {
   position: absolute;
   inset: 0;
-  /* Darkens the bottom edge so the controls stay readable over bright footage. */
-  background: linear-gradient(to bottom, transparent 60%, rgba(0, 0, 0, 0.7));
-  pointer-events: none;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin: auto;
+  border-radius: 50%;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.6);
+  transition:
+    transform 0.4s var(--ease-out),
+    color 0.25s var(--ease-out);
 }
-.reel__ui {
+/* Nudges the triangle so it looks centred in the circle. */
+.reel__play svg {
+  margin-left: 3px;
+}
+@media (hover: hover) {
+  .reel__media:hover {
+    box-shadow: 0 0 0 2px var(--red);
+  }
+  .reel__media:hover video {
+    transform: scale(1.05);
+  }
+  .reel__media:hover .reel__play {
+    transform: scale(1.1);
+    color: var(--red-strong);
+  }
+}
+/* Desktop: the showreel fills the left column; label, statement and button stack on the right, starting
+   level with the top of the video and ending level with its caption. Tablets split the card evenly; wider
+   screens give the showreel 60%. */
+@media (min-width: 900px) {
+  .intro__card {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas: 'reel head' 'reel body';
+    column-gap: clamp(40px, 5vw, 72px);
+    row-gap: clamp(20px, 2.4vw, 32px);
+  }
+  .intro__statement {
+    font-size: clamp(26px, 2.6vw, 34px);
+  }
+  /* Statement at the top, button pinned to the bottom. */
+  .intro__body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: clamp(28px, 3.4vw, 44px);
+  }
+  .intro__cta {
+    margin-top: auto;
+  }
+  .reel {
+    align-self: center;
+  }
+  .reel__play {
+    width: 76px;
+    height: 76px;
+  }
+}
+@media (min-width: 1200px) {
+  .intro__card {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+  .intro__statement {
+    font-size: clamp(30px, 2.5vw, 34px);
+  }
+  .reel__play {
+    width: 88px;
+    height: 88px;
+  }
+}
+
+/* Full-size video, opened from the showreel card or a project popup. Play/pause, progress and, for videos with
+   audio, a sound button. The panel takes the video's shape from --ratio (width / height). */
+.reelbox {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.reelbox__backdrop {
   position: absolute;
   inset: 0;
-  opacity: var(--reveal);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: flex-start;
-  padding: clamp(12px, 2.4vw, 28px);
-  pointer-events: none;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
 }
-.reel__bar {
+.reelbox__panel {
+  position: relative;
+  width: min(100%, 1280px, calc((100svh - 160px) * var(--ratio)));
+  aspect-ratio: var(--ratio);
+  overflow: hidden;
+  border-radius: clamp(12px, 1.6vw, 20px);
+  background: #000;
+  box-shadow: 0 40px 120px -30px var(--red-glow);
+}
+.reelbox__panel video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: pointer;
+}
+.reelbox__bar {
+  position: absolute;
+  inset: auto 0 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  width: 100%;
+  padding: clamp(10px, 2vw, 24px);
+  /* Darkens the bottom edge so the controls stay readable over bright footage. */
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.6));
+  pointer-events: none;
 }
-.reel__controls {
+.reelbox__group {
   display: flex;
   gap: 8px;
 }
-.reel__btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+.reelbox__btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
   height: 44px;
-  padding: 0 18px;
+  padding: 0;
   border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  border-radius: 50%;
   background: rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(8px);
   color: var(--text);
-  font: var(--btn-font);
-  font-size: 13px;
-  letter-spacing: var(--btn-tracking);
-  white-space: nowrap;
   cursor: pointer;
   pointer-events: auto;
   transition:
@@ -649,63 +798,31 @@ section[id] {
     border-color 0.25s var(--ease-out),
     background-color 0.25s var(--ease-out);
 }
-.reel__btn--icon {
-  width: 44px;
-  padding: 0;
-}
-.reel__btn--cta {
-  border-color: var(--red-strong);
-  background: var(--red-strong);
-  color: #fff;
-  box-shadow: 0 10px 40px -10px var(--red-glow);
-}
 @media (hover: hover) {
-  .reel__btn:hover {
+  .reelbox__btn:hover {
     border-color: #fff;
     background: #fff;
     color: #000;
   }
 }
-.reel__time {
+.reelbox__time {
   font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.08em;
   color: rgba(255, 255, 255, 0.8);
 }
-.reel__progress {
+.reelbox__progress {
   position: absolute;
   inset: auto 0 0;
   height: 3px;
   background: rgba(255, 255, 255, 0.15);
 }
-.reel__progress span {
+.reelbox__progress span {
   display: block;
   height: 100%;
   background: var(--red);
   transform-origin: left;
-}
-/* Phones: the reel runs edge to edge for a bigger picture, opening from a rounded card to a square-cornered strip. */
-@media (max-width: 599px) {
-  .reel {
-    --inset-y: 12%;
-    --inset-x: 14%;
-    --round-from: 28px;
-    --round-to: 0px;
-    margin-inline: calc(var(--gutter) * -1);
-  }
-  .reel__btn {
-    height: 40px;
-    padding: 0 14px;
-    font-size: 12px;
-  }
-  .reel__btn--icon {
-    width: 40px;
-    padding: 0;
-  }
-  .reel__time {
-    display: none;
-  }
 }
 
 /* ---------- Services ---------- */
@@ -1133,26 +1250,11 @@ section[id] {
   border-top: 1px solid var(--border);
 }
 .work__head {
-  display: grid;
-  gap: 24px;
   margin-bottom: clamp(48px, 7vw, 88px);
 }
 .work__head .section-heading {
-  margin-top: 20px;
-}
-.work__text {
-  color: var(--text-muted);
-  font-size: 17px;
-  max-width: 48ch;
-  align-self: end;
-}
-.work__head .section-heading {
   max-width: 20ch;
-}
-@media (min-width: 900px) {
-  .work__text {
-    justify-self: end;
-  }
+  margin-top: 20px;
 }
 .projects {
   display: grid;
@@ -1170,59 +1272,31 @@ section[id] {
   display: block;
   color: inherit;
 }
+/* Portrait, to suit the vertical reels. The extra height gives the parallax room to drift. */
 .project__frame {
   position: relative;
-  aspect-ratio: 1;
+  aspect-ratio: 4 / 5;
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--surface-2);
+  /* The trailing "View" badge (.pcard__cursor) stands in for the pointer. */
+  cursor: none;
 }
-.project__frame img {
+.project__frame video {
   width: 100%;
   height: 112%;
   object-fit: cover;
-  transition: transform 0.8s var(--ease-out);
+  object-position: 50% 30%;
+  transition: scale 0.8s var(--ease-out);
 }
 @media (hover: hover) {
-  .project:hover .project__frame img {
-    transform: scale(1.05);
-  }
-}
-.project__badge {
-  position: absolute;
-  right: 20px;
-  bottom: 20px;
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--red-strong);
-  color: #fff;
-  transform: scale(0.8);
-  opacity: 0;
-  transition:
-    transform 0.4s var(--ease-out),
-    opacity 0.3s;
-}
-.project:focus-visible .project__badge {
-  transform: scale(1);
-  opacity: 1;
-}
-@media (hover: hover) {
-  .project:hover .project__badge {
-    transform: scale(1);
-    opacity: 1;
+  .project:hover .project__frame video {
+    scale: 1.05;
   }
 }
 @media (hover: none) {
-  .project__badge {
-    width: 52px;
-    height: 52px;
-    right: 16px;
-    bottom: 16px;
-    transform: scale(1);
-    opacity: 1;
+  .project__frame {
+    cursor: pointer;
   }
 }
 .project__meta {
@@ -2108,6 +2182,8 @@ section[id] {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Portrait reels are cropped towards the top, where faces usually are. Square ones are unaffected. */
+  object-position: 50% 25%;
   transition: transform 0.9s var(--ease-out);
 }
 @media (hover: hover) {
@@ -2298,6 +2374,79 @@ section[id] {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: 50% 25%;
+}
+/* The whole reel is the button that opens it full size, with sound where the project has it. */
+.pmodal__watch {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.pmodal__watch:focus-visible {
+  outline-offset: -6px;
+  border-radius: inherit;
+}
+.pmodal__play {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.6);
+  transition:
+    transform 0.4s var(--ease-out),
+    color 0.25s var(--ease-out);
+}
+/* Nudges the triangle so it looks centred in the circle. */
+.pmodal__play svg {
+  margin-left: 3px;
+}
+.pmodal__hint {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(5, 5, 5, 0.7);
+  backdrop-filter: blur(8px);
+  font-size: 13px;
+  font-weight: 600;
+}
+@media (hover: hover) {
+  .pmodal__watch:hover .pmodal__play {
+    transform: scale(1.1);
+    color: var(--red-strong);
+  }
+}
+@media (hover: none) {
+  .pmodal__watch:active .pmodal__play {
+    transform: scale(0.95);
+    transition-duration: 0.15s;
+  }
+}
+@media (min-width: 900px) {
+  .pmodal__play {
+    width: 76px;
+    height: 76px;
+  }
+  .pmodal__hint {
+    left: 20px;
+    bottom: 20px;
+  }
 }
 .pmodal__title {
   margin-top: 14px;
@@ -2900,7 +3049,8 @@ section[id] {
   margin-top: clamp(32px, 5vw, 56px);
   font-family: var(--font-display);
   font-weight: 300;
-  font-size: clamp(36px, 5.4vw, 76px);
+  /* Drops below 36px only on the narrowest phones, where "remembering." (about 7.6em) wouldn't fit. */
+  font-size: clamp(min(36px, (100vw - 2 * var(--gutter)) / 7.8), 5.4vw, 76px);
   line-height: 1.04;
   letter-spacing: -0.035em;
   text-wrap: balance;
@@ -2915,6 +3065,13 @@ section[id] {
 .signoff__note {
   font-size: clamp(16px, 1.4vw, 19px);
   color: var(--text-muted);
+}
+/* The long WhatsApp label wraps on the narrowest phones instead of running off the screen. */
+.signoff__foot .btn {
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
 }
 @media (min-width: 768px) {
   .signoff__foot {
@@ -4235,7 +4392,8 @@ section[id] {
 /* Hover styles only apply with a mouse, so taps get a quick press instead. */
 @media (hover: none) {
   .btn,
-  .reel__btn,
+  .hero__enquire,
+  .reelbox__btn,
   .radial__arrows button,
   .radial__all,
   .filter,
@@ -4247,7 +4405,8 @@ section[id] {
     transition-duration: 0.15s;
   }
   .btn:active,
-  .reel__btn:active,
+  .hero__enquire:active,
+  .reelbox__btn:active,
   .radial__arrows button:active,
   .radial__all:active,
   .filter:active,

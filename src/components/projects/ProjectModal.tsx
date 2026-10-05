@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { deliverables, links } from '../../content'
 import type { Project } from '../../content'
-import { ArrowUpRight } from '../Icons'
+import { ArrowUpRight, Play, Volume } from '../Icons'
+import { VideoLightbox } from '../VideoLightbox'
 
 type Props = {
   project: Project
@@ -21,6 +22,9 @@ export function ProjectModal({ project, index, all, morph, onClose, onNavigate }
   const panelRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  // Set while the reel is open full size: where it was and its shape.
+  const [watching, setWatching] = useState<{ at: number; ratio: number } | null>(null)
 
   const prev = all[(index - 1 + all.length) % all.length]
   const next = all[(index + 1) % all.length]
@@ -46,7 +50,23 @@ export function ProjectModal({ project, index, all, morph, onClose, onNavigate }
     if (card && card.currentTime > 0) video.currentTime = card.currentTime
   }
 
+  // The reel in the popup rests while it plays full size, and carries on when that closes.
+  const watch = () => {
+    const video = videoRef.current
+    setWatching({
+      at: video?.currentTime ?? 0,
+      ratio: video?.videoWidth && video.videoHeight ? video.videoWidth / video.videoHeight : 1,
+    })
+    video?.pause()
+  }
+  const stopWatching = () => {
+    setWatching(null)
+    videoRef.current?.play().catch(() => {})
+  }
+
   useEffect(() => {
+    // The full-size player handles the keyboard while it's open.
+    if (watching) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
       else if (e.key === 'ArrowRight') onNavigate(next.slug)
@@ -67,7 +87,7 @@ export function ProjectModal({ project, index, all, morph, onClose, onNavigate }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, onNavigate, next.slug, prev.slug])
+  }, [onClose, onNavigate, next.slug, prev.slug, watching])
 
   const details = [
     project.challenge && { title: 'The challenge', text: project.challenge },
@@ -106,8 +126,9 @@ export function ProjectModal({ project, index, all, morph, onClose, onNavigate }
                 transition={{ duration: 0.6, ease }}
               >
                 <video
-                  // React only sets `muted` as a property; iOS also wants the attribute before autoplaying.
                   ref={(v) => {
+                    videoRef.current = v
+                    // React only sets `muted` as a property; iOS also wants the attribute before autoplaying.
                     if (v) v.defaultMuted = true
                   }}
                   src={project.video}
@@ -118,6 +139,25 @@ export function ProjectModal({ project, index, all, morph, onClose, onNavigate }
                   playsInline
                   onLoadedMetadata={(e) => morph && syncWithCard(e.currentTarget)}
                 />
+                <button
+                  type="button"
+                  className="pmodal__watch"
+                  onClick={watch}
+                  aria-label={`Watch the ${project.name} reel ${project.fullVideo ? 'with sound' : 'full size'}`}
+                >
+                  <span className="pmodal__play" aria-hidden="true">
+                    <Play size={22} />
+                  </span>
+                  <span className="pmodal__hint" aria-hidden="true">
+                    {project.fullVideo ? (
+                      <>
+                        <Volume size={16} /> Watch with sound
+                      </>
+                    ) : (
+                      'Watch full size'
+                    )}
+                  </span>
+                </button>
               </motion.div>
             </div>
 
@@ -221,6 +261,20 @@ export function ProjectModal({ project, index, all, morph, onClose, onNavigate }
           </nav>
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {watching && (
+          <VideoLightbox
+            src={project.fullVideo ?? project.video}
+            poster={project.poster}
+            startAt={watching.at}
+            ratio={watching.ratio}
+            label={`${project.name} reel`}
+            sound={!!project.fullVideo}
+            onClose={stopWatching}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>,
     document.body,
   )

@@ -9,17 +9,19 @@ type Props = {
   project: Project
   number: number
   hidden: boolean
+  // True while a project popup covers the grid, so the reels rest behind it.
+  paused: boolean
   onOpen: () => void
 }
 
-export function ProjectCard({ project, number, hidden, onOpen }: Props) {
+export function ProjectCard({ project, number, hidden, paused, onOpen }: Props) {
   const ref = useRef<HTMLAnchorElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const inView = useInView(ref, { amount: 0.45 })
   const [hover, setHover] = useState(false)
 
   // Reels play only while the card is mostly on screen.
-  useAutoplay(videoRef, inView && !hidden)
+  useAutoplay(videoRef, inView && !paused)
 
   // "View" badge that trails the pointer across the media.
   const mx = useMotionValue(0)

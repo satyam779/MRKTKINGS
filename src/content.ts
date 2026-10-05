@@ -4,12 +4,14 @@
 export const media = {
   logo: { src: '/media/logo.webp', width: 585, height: 80 },
   crown: '/media/crown.svg',
+  // Screens under 1024px wide get the 720p copy (half the size).
   heroVideo: '/media/hero.mp4',
+  heroVideoSmall: '/media/hero-720.mp4',
   // Still frame shown while the video loads, or if the phone refuses to autoplay it.
   heroPoster: '/media/hero-poster.webp' as string | undefined,
-  // Services reel under the intro statement. Plays with sound by default (muted only until the visitor's
-  // first tap or click, when the browser requires it). Screens under 1024px wide get the 720p copy to save
-  // data (see Media in the README for the full-quality master).
+  // Services reel in the intro card. Always muted: a small preview loops on the card and its play button
+  // opens it full size. Screens under 1024px wide get the 720p copy to save data (see Media in the README
+  // for the full-quality master).
   reelVideo: '/media/services-reel-1080.mp4',
   reelVideoSmall: '/media/services-reel-720.mp4',
   // Still frame shown until the reel plays (phones on Data Saver start from this).
@@ -33,10 +35,8 @@ export const links = {
 }
 
 export const hero = {
-  eyebrow: 'D2C growth agency · Bengaluru',
   lines: ['Crowning', 'Brands with'],
   highlight: 'SUCCESS.',
-  sub: 'Proven strategies, real creativity, and measurable growth for D2C brands.',
 }
 
 export const intro = {
@@ -44,7 +44,7 @@ export const intro = {
   tag: "Let's grow together",
   statement:
     "We're the powerhouse behind unstoppable D2C brands. Strategy, creativity, and data working as one.",
-  reelLabel: 'The MRKTKings reel',
+  accent: 'unstoppable',
 }
 
 // Copy from the live Services page (mrktkings.com/services). Order matches that page.
@@ -124,29 +124,19 @@ export const whyUs = {
 export const work = {
   label: 'Works we have done',
   heading: 'Every project solves a real challenge and drives measurable growth.',
-  text: "From stunning visuals to fully integrated marketing campaigns, we design experiences that inspire, engage, and convert. We don't just deliver projects, we deliver impact.",
-  projects: [
-    {
-      slug: 'sereneve',
-      name: 'Serenève',
-      image: '/media/project-sereneve.webp',
-      summary: 'Complete brand setup with an e-commerce web store.',
-      tags: ['Brand setup', 'E-commerce store'],
-    },
-    {
-      slug: 'ethnos',
-      name: 'Ethnos',
-      image: '/media/project-ethnos.webp',
-      summary: 'Complete brand setup with an e-commerce web store and digital marketing.',
-      tags: ['Brand setup', 'E-commerce store', 'Digital marketing'],
-    },
-  ],
+  // Slugs from `projects` below. Each card plays that project's reel and opens it on the Projects page.
+  featured: ['glow-glossary', 'guugly-wuugly'],
 }
 
 // Projects page (mrktkings.com/our-work). Names and services come from the live site.
 // `industry` is read off each brand's own reel; confirm with the client.
+// Glow Glossary, Guugly Wuugly and Saray and Valley aren't on the live site yet: their industry, summary and
+// services are all read off their reels, so confirm those three with the client too.
+// Reels can be square or portrait (9:16); cards crop portrait ones towards the top, where faces usually are.
 // Optional case-study fields (`challenge`, `approach`, `results`, `website`) show up in the
 // project popup as soon as they're filled in.
+// Tapping the reel in the popup plays it full size. `fullVideo` is a copy with sound for that; without one the
+// muted `video` opens full size instead (Guugly Wuugly's master has no audio track).
 export type Project = {
   slug: string
   name: string
@@ -155,6 +145,7 @@ export type Project = {
   services: string[]
   video: string
   poster: string
+  fullVideo?: string
   challenge?: string
   approach?: string
   results?: string[]
@@ -170,6 +161,35 @@ export const projectsPage = {
 
 export const projects: Project[] = [
   {
+    slug: 'glow-glossary',
+    name: 'Glow Glossary',
+    industry: 'Juices & smoothies',
+    summary: 'Creator collaborations, content curation and social media management.',
+    services: ['Influencer Marketing', 'Content Curation', 'SMM'],
+    video: '/media/work-glow-glossary.mp4',
+    poster: '/media/work-glow-glossary-poster.webp',
+    fullVideo: '/media/work-glow-glossary-full.mp4',
+  },
+  {
+    slug: 'guugly-wuugly',
+    name: 'Guugly Wuugly',
+    industry: 'Kidswear',
+    summary: 'Content curation and social media management.',
+    services: ['Content Curation', 'SMM'],
+    video: '/media/work-guugly-wuugly.mp4',
+    poster: '/media/work-guugly-wuugly-poster.webp',
+  },
+  {
+    slug: 'saray-and-valley',
+    name: 'Saray and Valley',
+    industry: 'Ethnic & bridal wear',
+    summary: 'Content curation and social media management.',
+    services: ['Content Curation', 'SMM'],
+    video: '/media/work-saray-and-valley.mp4',
+    poster: '/media/work-saray-and-valley-poster.webp',
+    fullVideo: '/media/work-saray-and-valley-full.mp4',
+  },
+  {
     slug: 'sereneve',
     name: 'Serenève',
     industry: 'Fashion',
@@ -177,15 +197,6 @@ export const projects: Project[] = [
     services: ['Branding', 'UI Design', 'Web Development', 'SMM'],
     video: '/media/work-sereneve.mp4',
     poster: '/media/work-sereneve-poster.webp',
-  },
-  {
-    slug: 'ethnos',
-    name: 'Ethnos',
-    industry: 'Ethnic wear & jewellery',
-    summary: 'Content curation and social media management.',
-    services: ['Content Curation', 'SMM'],
-    video: '/media/work-ethnos.mp4',
-    poster: '/media/work-ethnos-poster.webp',
   },
   {
     slug: 'baindemer',
@@ -232,6 +243,11 @@ export const deliverables: Record<string, { label: string; text: string; service
     label: 'Web Development',
     text: "A storefront that works as the brand's universe, built to be fast, seamless and future-ready.",
     service: 'ux-ui-web-development',
+  },
+  'Influencer Marketing': {
+    label: 'Influencer Marketing',
+    text: 'Creators that amplify, not just advertise: partners who match the brand in voice, vibe and value.',
+    service: 'influencer-marketing',
   },
   'Content Curation': {
     label: 'Content Curation',
