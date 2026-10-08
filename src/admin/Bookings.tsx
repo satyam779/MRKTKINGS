@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Download, Search } from '../components/Icons'
+import { Download, Search, Trash } from '../components/Icons'
 import { connectPage } from '../content'
 import type { BookingRow, BookingStatus } from '../lib/supabase'
 import { BookingPanel } from './BookingPanel'
@@ -134,25 +134,26 @@ export function Bookings({ db }: { db: SupabaseClient }) {
     }
   }, [db, toast])
 
-  // Changes show straight away and roll back if the database refuses them.
+  // Changes show straight away and roll back if the database refuses them. Row-level security refuses by
+  // changing nothing rather than with an error, so both check that the booking was actually touched.
   const patch = async (id: string, values: Patch) => {
     const before = rows?.find((r) => r.id === id)
     setRows((list) => list?.map((r) => (r.id === id ? { ...r, ...values } : r)) ?? list)
-    const { error } = await db.from('bookings').update(values).eq('id', id)
-    if (!error) return true
+    const { data, error } = await db.from('bookings').update(values).eq('id', id).select('id')
+    if (!error && data.length) return true
     if (before) setRows((list) => list?.map((r) => (r.id === id ? before : r)) ?? list)
     toast(
-      error.code === '23505'
+      error?.code === '23505'
         ? 'Another booking already has that time, so this one can’t be reopened.'
-        : `Couldn’t save the change: ${error.message}`,
+        : `Couldn’t save the change: ${error?.message ?? 'this account isn’t allowed to change bookings.'}`,
     )
     return false
   }
 
   const remove = async (id: string) => {
-    const { error } = await db.from('bookings').delete().eq('id', id)
-    if (error) {
-      toast(`Couldn’t delete the booking: ${error.message}`)
+    const { data, error } = await db.from('bookings').delete().eq('id', id).select('id')
+    if (error || !data.length) {
+      toast(`Couldn’t delete the booking: ${error?.message ?? 'this account isn’t allowed to delete bookings.'}`)
       return false
     }
     setRows((list) => list?.filter((r) => r.id !== id) ?? list)
@@ -284,7 +285,15 @@ export function Bookings({ db }: { db: SupabaseClient }) {
           )}
         </div>
       ) : (
-        <BookingList rows={shown} grouped={byDay(view)} fresh={fresh} now={now} onOpen={openRow} onStatus={(id, status) => void patch(id, { status })} />
+        <BookingList
+          rows={shown}
+          grouped={byDay(view)}
+          fresh={fresh}
+          now={now}
+          onOpen={openRow}
+          onStatus={(id, status) => void patch(id, { status })}
+          onDelete={remove}
+        />
       )}
 
       <BookingPanel
@@ -352,9 +361,42 @@ type ListProps = {
   now: number
   onOpen: (id: string) => void
   onStatus: (id: string, status: BookingStatus) => void
+  onDelete: (id: string) => Promise<boolean>
 }
 
-function BookingList({ rows, grouped, fresh, now, onOpen, onStatus }: ListProps) {
+// Deletes a booking from its row in the list, after a second press to confirm.
+function RowDelete({ name, onDelete }: { name: string; onDelete: () => Promise<boolean> }) {
+  const [step, setStep] = useState<'idle' | 'confirm' | 'deleting'>('idle')
+  const keepRef = useRef<HTMLButtonElement>(null)
+  // The trash button disappears when pressed, so focus moves to "Keep", the safe choice.
+  useEffect(() => {
+    if (step === 'confirm') keepRef.current?.focus()
+  }, [step])
+
+  if (step === 'idle') {
+    return (
+      <button type="button" className="list__delete" aria-label={`Delete booking for ${name}`} title="Delete booking" onClick={() => setStep('confirm')}>
+        <Trash size={18} />
+      </button>
+    )
+  }
+  const remove = async () => {
+    setStep('deleting')
+    if (!(await onDelete())) setStep('idle')
+  }
+  return (
+    <span className="list__confirm" role="group" aria-label={`Delete the booking for ${name} for good?`}>
+      <button type="button" className="abtn abtn--danger abtn--small" disabled={step === 'deleting'} onClick={() => void remove()}>
+        {step === 'deleting' ? 'Deleting…' : 'Delete'}
+      </button>
+      <button ref={keepRef} type="button" className="abtn abtn--small" disabled={step === 'deleting'} onClick={() => setStep('idle')}>
+        Keep
+      </button>
+    </span>
+  )
+}
+
+function BookingList({ rows, grouped, fresh, now, onOpen, onStatus, onDelete }: ListProps) {
   return (
     <table className="list">
       <thead>
@@ -365,6 +407,9 @@ function BookingList({ rows, grouped, fresh, now, onOpen, onStatus }: ListProps)
           <th scope="col">Budget</th>
           <th scope="col">Status</th>
           <th scope="col">Received</th>
+          <th scope="col">
+            <span className="sr-only">Delete</span>
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -376,7 +421,7 @@ function BookingList({ rows, grouped, fresh, now, onOpen, onStatus }: ListProps)
             <Fragment key={r.id}>
               {newDay && (
                 <tr className="list__day">
-                  <th colSpan={6} scope="colgroup">
+                  <th colSpan={7} scope="colgroup">
                     {formatDayLong(r.call_start)}
                     {note && <span>{note}</span>}
                   </th>
@@ -409,6 +454,9 @@ function BookingList({ rows, grouped, fresh, now, onOpen, onStatus }: ListProps)
                 </td>
                 <td className="list__received" title={formatStamp(r.created_at)}>
                   {fromNow(r.created_at, now)}
+                </td>
+                <td className="list__actions" onClick={(e) => e.stopPropagation()}>
+                  <RowDelete name={r.name} onDelete={() => onDelete(r.id)} />
                 </td>
               </tr>
             </Fragment>

@@ -215,6 +215,12 @@ export const Download = (p: IconProps) => (
   </Svg>
 )
 
+export const Trash = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4.5 7h15M10 7V4.5h4V7M6.5 7l.9 12.5h9.2L17.5 7M10.25 10.5v5.5M13.75 10.5v5.5" />
+  </Svg>
+)
+
 export const Lock = (p: IconProps) => (
   <Svg {...p}>
     <rect x="5" y="10.5" width="14" height="10" rx="2.5" />
