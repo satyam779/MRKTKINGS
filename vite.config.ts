@@ -55,7 +55,7 @@ function pageRoutes(): Plugin {
   }
 }
 
-// Writes robots.txt and sitemap.xml into the build from VITE_SITE_URL, so the domain lives only in .env.
+// Writes robots.txt and sitemap.xml into the build from VITE_SITE_URL, so the domain is set in one place.
 function seoFiles(site: string): Plugin {
   return {
     name: 'seo-files',
@@ -78,9 +78,20 @@ function seoFiles(site: string): Plugin {
 }
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => {
-  const site = loadEnv(mode, root, 'VITE_').VITE_SITE_URL?.replace(/\/$/, '')
-  if (!site) throw new Error('Set VITE_SITE_URL in .env (the live site address, e.g. https://mrktkings.com).')
+export default defineConfig(({ command, mode }) => {
+  const env = loadEnv(mode, root, 'VITE_')
+  const site = env.VITE_SITE_URL?.replace(/\/$/, '')
+  if (!site) {
+    throw new Error(
+      'Set VITE_SITE_URL (the live site address, e.g. https://mrktkings.com) in .env, or in the host\'s environment variables when it builds the site. See .env.example.',
+    )
+  }
+  // Without these the site still builds, but Let's Connect only opens the visitor's email app and /admin/ can't load.
+  if (command === 'build' && !(env.VITE_SUPABASE_URL && env.VITE_SUPABASE_PUBLISHABLE_KEY)) {
+    console.warn(
+      '\n⚠ VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY is missing: bookings will not be saved and /admin/ will not work. See .env.example.\n',
+    )
+  }
 
   return {
     // Separate pages, not a single-page app: no falling back to the home page for unknown addresses.

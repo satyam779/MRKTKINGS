@@ -16,12 +16,16 @@ Marketing site for MRKTKings, a D2C growth agency in Bengaluru. Five pages built
 Needs Node 20 or newer.
 
 ```sh
+cp .env.example .env   # first time only, then fill in the values
 npm install
 npm run dev       # local dev server at http://localhost:5173
 npm run build     # type-check and build the static site into dist/
 npm run preview   # serve dist/ locally to check the production build
 npm run lint
 ```
+
+`.env` holds this machine's settings and is never committed (it's in `.gitignore`). `.env.example` lists every
+setting with a description; keep it in step when adding one.
 
 ## Editing content
 
@@ -145,8 +149,10 @@ originals are in git history (`git show 6c6ccc4:public/media/work-<slug>.mp4`).
 
 Supabase pauses free-plan projects after a week without activity, and bookings would fail while it's paused. The GitHub
 Action in `.github/workflows/supabase-keepalive.yml` prevents that: every Monday and Thursday it asks Supabase which
-call times are taken (no personal data), using the URL and public key from `.env`. Check it from the Actions tab; if
-a run fails, the project may already be paused, so restore it from the Supabase dashboard.
+call times are taken (no personal data), using the Supabase URL and public key. Because `.env` isn't committed, give
+them to GitHub once: repository **Settings → Secrets and variables → Actions**, then add the variable `SUPABASE_URL`
+(Variables tab) and the secret `SUPABASE_PUBLISHABLE_KEY` (Secrets tab), with the same values as in `.env`. Check it
+from the Actions tab; if a run fails, the project may already be paused, so restore it from the Supabase dashboard.
 
 GitHub switches off scheduled workflows in a public repository after 60 days without any commits. If the repository is
 public and goes quiet, re-enable the workflow from the Actions tab (or move to Supabase's paid plan, which never pauses).
@@ -154,6 +160,10 @@ public and goes quiet, re-enable the workflow from the Actions tab (or move to S
 ## Deploying
 
 `npm run build` produces a fully static site in `dist/`. Upload it to any static host (Netlify, Vercel, Cloudflare Pages, GitHub Pages, S3, cPanel and so on).
+
+If the host builds the site from GitHub, add `VITE_SITE_URL`, `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in
+its environment variables settings (build command `npm run build`, output folder `dist`). The build stops without
+`VITE_SITE_URL`, and warns if the Supabase settings are missing.
 
 - `dist/404.html` is the not-found page; most static hosts use it automatically.
 - Files in `dist/assets/` have hashed names and can be cached for a year (`Cache-Control: public, max-age=31536000, immutable`). Cache HTML and `/media/` for a shorter time.
@@ -176,6 +186,6 @@ Still to do:
 - [ ] Confirm the Let's Connect budget ranges, call hours and working days in `content.ts`.
 - [ ] Add Privacy Policy and Disclaimer URLs, or leave them hidden.
 - [ ] Get sign-off on the About page copy and the project `industry` labels (flagged in `content.ts`).
-- [ ] Push to GitHub, then open the repository's Actions tab → "Keep Supabase awake" → Run workflow once, and check it
-      goes green (see Keeping Supabase awake).
+- [ ] Add the `SUPABASE_URL` variable and `SUPABASE_PUBLISHABLE_KEY` secret to the GitHub repository, then open the
+      Actions tab → "Keep Supabase awake" → Run workflow once, and check it goes green (see Keeping Supabase awake).
 - [ ] After going live, submit `https://<domain>/sitemap.xml` in Google Search Console.

@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Environment files: each machine and host keeps its own. Only the template is committed.
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

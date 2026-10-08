@@ -2,7 +2,10 @@ name: Keep Supabase awake
 
 # Supabase pauses free-plan projects after a week without activity, and Let's Connect bookings would then
 # fail. This calls the public "taken slots" lookup twice a week, which counts as activity. It only reads
-# booked call times (never who booked), with the same public key the website already ships in .env.
+# booked call times (never who booked), with the same public key the website ships.
+# Needs, in the repository's Settings -> Secrets and variables -> Actions:
+#   variable SUPABASE_URL              same value as VITE_SUPABASE_URL in .env
+#   secret   SUPABASE_PUBLISHABLE_KEY  same value as VITE_SUPABASE_PUBLISHABLE_KEY in .env
 # Run it by hand from the Actions tab to check it works.
 
 on:
@@ -18,23 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-        with:
-          sparse-checkout: .env
-          sparse-checkout-cone-mode: false
-
       - name: Ask Supabase for taken call times
         env:
-          # Optional overrides, if .env ever stops being committed: repository variable SUPABASE_URL and
-          # secret SUPABASE_PUBLISHABLE_KEY.
-          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          url: ${{ vars.SUPABASE_URL }}
+          key: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          from_env() { grep -E "^$1=" .env 2>/dev/null | head -1 | cut -d= -f2- | tr -d '\r'; }
-          url="${SUPABASE_URL:-$(from_env VITE_SUPABASE_URL)}"
-          key="${SUPABASE_KEY:-$(from_env VITE_SUPABASE_PUBLISHABLE_KEY)}"
           if [ -z "$url" ] || [ -z "$key" ]; then
-            echo "::error::No Supabase URL or publishable key found in .env (or in the SUPABASE_URL variable / SUPABASE_PUBLISHABLE_KEY secret)."
+            echo "::error::Add the repository variable SUPABASE_URL and secret SUPABASE_PUBLISHABLE_KEY (Settings -> Secrets and variables -> Actions)."
             exit 1
           fi
           from=$(date -u +%Y-%m-%dT%H:%M:%SZ)
