@@ -184,7 +184,7 @@ Still to do:
 - [ ] Set up booking emails to mrktkings@gmail.com (see Booking emails) and check the test booking's email arrives.
 - [ ] Confirm where "Careers" should go (`links.careers` in `content.ts`). It points at `mrktkings.com/careers/`, which
       won't exist once this site replaces the old one.
-- [ ] Confirm the Let's Connect budget ranges, call hours and working days in `content.ts`.
+- [ ] Confirm the Let's Connect budget ranges and call hours in `content.ts`. Calls can be booked every day of the week.
 - [ ] Add Privacy Policy and Disclaimer URLs, or leave them hidden.
 - [ ] Get sign-off on the About page copy and the project `industry` labels (flagged in `content.ts`).
 - [ ] Add the `SUPABASE_URL` variable and `SUPABASE_PUBLISHABLE_KEY` secret to the GitHub repository, then open the

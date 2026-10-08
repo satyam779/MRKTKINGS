@@ -336,7 +336,7 @@ export const connectPage = {
 export const booking = {
   callMinutes: 30,
   // Days the team takes calls: 0 = Sunday, 1 = Monday … 6 = Saturday.
-  days: [1, 2, 3, 4, 5],
+  days: [0, 1, 2, 3, 4, 5, 6],
   // First and last call start times (24-hour, Bengaluru time).
   from: '10:00',
   until: '18:30',
