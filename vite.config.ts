@@ -77,19 +77,29 @@ function seoFiles(site: string): Plugin {
   }
 }
 
+// Settings the pages read. Each can be named with or without VITE_ (Vercel's settings use the names without
+// it). Vite only hands VITE_ names to the pages, so a name without it is copied across. Only these three are
+// copied, so nothing else set on the host (a secret key, say) can end up in the browser.
+const publicSettings = ['SITE_URL', 'SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY']
+
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {
-  const env = loadEnv(mode, root, 'VITE_')
-  const site = env.VITE_SITE_URL?.replace(/\/$/, '')
+  const env = loadEnv(mode, root, '')
+  for (const name of publicSettings) {
+    const value = env[`VITE_${name}`] || env[name]
+    if (value) process.env[`VITE_${name}`] = value
+  }
+
+  const site = process.env.VITE_SITE_URL?.replace(/\/$/, '')
   if (!site) {
     throw new Error(
-      'Set VITE_SITE_URL (the live site address, e.g. https://mrktkings.com) in .env, or in the host\'s environment variables when it builds the site. See .env.example.',
+      'Set SITE_URL (the live site address, e.g. https://mrktkings.com) in the host\'s environment variables, or VITE_SITE_URL in .env. See .env.example.',
     )
   }
   // Without these the site still builds, but Let's Connect only opens the visitor's email app and /admin/ can't load.
-  if (command === 'build' && !(env.VITE_SUPABASE_URL && env.VITE_SUPABASE_PUBLISHABLE_KEY)) {
+  if (command === 'build' && !(process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_PUBLISHABLE_KEY)) {
     console.warn(
-      '\n⚠ VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY is missing: bookings will not be saved and /admin/ will not work. See .env.example.\n',
+      '\n⚠ SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY is missing: bookings will not be saved and /admin/ will not work. See .env.example.\n',
     )
   }
 

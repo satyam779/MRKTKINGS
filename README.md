@@ -161,9 +161,10 @@ public and goes quiet, re-enable the workflow from the Actions tab (or move to S
 
 `npm run build` produces a fully static site in `dist/`. Upload it to any static host (Netlify, Vercel, Cloudflare Pages, GitHub Pages, S3, cPanel and so on).
 
-If the host builds the site from GitHub, add `VITE_SITE_URL`, `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in
-its environment variables settings (build command `npm run build`, output folder `dist`). The build stops without
-`VITE_SITE_URL`, and warns if the Supabase settings are missing.
+The live site is on Vercel, which builds it from GitHub on every push to `main`. Its settings (Project → Settings →
+Environment Variables) hold `SITE_URL`, `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`, the same values as in `.env`;
+the build accepts these names with or without `VITE_`. The build stops without the site address, and warns if the
+Supabase settings are missing. Changing a value takes effect on the next deployment (Deployments → ⋯ → Redeploy).
 
 - `dist/404.html` is the not-found page; most static hosts use it automatically.
 - Files in `dist/assets/` have hashed names and can be cached for a year (`Cache-Control: public, max-age=31536000, immutable`). Cache HTML and `/media/` for a shorter time.
