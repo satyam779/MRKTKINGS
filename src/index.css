@@ -2510,6 +2510,12 @@ section[id] {
   color: var(--text-muted);
   font-size: 15px;
 }
+/* What this project got specifically, e.g. the ad platforms; brighter than the general description below it. */
+.deliverables .deliverables__note {
+  margin-bottom: 4px;
+  color: var(--text);
+  font-weight: 500;
+}
 .deliverables__link {
   display: inline-flex;
   align-items: center;
@@ -2786,299 +2792,50 @@ section[id] {
   }
 }
 
-/* Shared heading for the sections below the hero */
-.about-heading {
-  font-family: var(--font-display);
-  font-weight: 300;
-  font-size: clamp(32px, 4.4vw, 60px);
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-  text-wrap: balance;
-}
-
-/* Statement */
-.statement {
+/* Letter: one reading column; body text, the punchlines set large, then the signature */
+.letter {
   padding: clamp(96px, 12vw, 176px) 0 var(--section-y);
 }
-.statement__belief {
-  max-width: 16ch;
+.letter__inner {
+  max-width: 46rem;
+  margin-inline: auto;
+}
+.letter__text {
+  font-size: clamp(17px, 1.5vw, 21px);
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.72);
+}
+.letter__text + .letter__text {
+  margin-top: 1.2em;
+}
+.letter__pull {
+  margin: clamp(40px, 6vw, 80px) 0;
   font-family: var(--font-display);
   font-weight: 300;
-  font-size: clamp(34px, 5.8vw, 84px);
-  line-height: 1.04;
+  font-size: clamp(28px, 4.2vw, 54px);
+  line-height: 1.08;
   letter-spacing: -0.035em;
   text-wrap: balance;
 }
-.statement__story {
-  max-width: 34rem;
-  margin-top: clamp(40px, 6vw, 80px);
-  font-size: clamp(17px, 1.4vw, 20px);
-  line-height: 1.65;
-  color: rgba(255, 255, 255, 0.72);
-}
-.statement__by {
-  margin-top: 24px;
-  font-size: 14px;
-  color: var(--text-muted);
-}
-@media (min-width: 900px) {
-  .statement__story {
-    margin-left: 50%;
-  }
-}
-
-/* Numbers */
-.metrics {
-  padding: var(--section-y) 0;
-  border-top: 1px solid var(--border);
-}
-.metrics__grid {
-  display: grid;
-  gap: 48px;
-  margin: 0;
-}
-.metrics__grid > div {
-  display: flex;
-  flex-direction: column-reverse;
-}
-.metrics__value {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 300;
-  font-size: clamp(48px, 8vw, 96px);
-  line-height: 1;
-  letter-spacing: -0.04em;
-}
-.metrics__label {
-  margin-top: 12px;
-  font-size: 15px;
-  color: var(--text-muted);
-}
-@media (min-width: 768px) {
-  .metrics__grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 32px;
-  }
-}
-
-/* What I build */
-.whatido {
-  padding: var(--section-y) 0;
-  border-top: 1px solid var(--border);
-}
-.whatido__inner {
-  display: grid;
-  gap: 48px;
-}
-.whatido__text {
-  max-width: 26rem;
-  margin: 20px 0 32px;
-  color: var(--text-muted);
-}
-.whatido__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  border-top: 1px solid var(--border-strong);
-}
-.whatido__row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px 24px;
-  padding: 28px 0;
-  border-bottom: 1px solid var(--border-strong);
-}
-.whatido__row h3 {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: clamp(20px, 2.2vw, 30px);
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-}
-.whatido__row p {
-  grid-column: 1;
-  max-width: 30rem;
-  color: var(--text-muted);
-}
-.whatido__row svg {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  align-self: center;
-  color: var(--text-muted);
-  transition:
-    color 0.3s var(--ease-out),
-    transform 0.3s var(--ease-out);
-}
-.whatido__row:focus-visible svg {
-  color: var(--red);
-  transform: translate(3px, -3px);
-}
-@media (hover: hover) {
-  .whatido__row:hover svg {
-    color: var(--red);
-    transform: translate(3px, -3px);
-  }
-}
-@media (min-width: 900px) {
-  .whatido__inner {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    gap: 64px;
-  }
-  .whatido__intro {
-    position: sticky;
-    top: 120px;
-    align-self: start;
-  }
-}
-
-/* Process */
-.process {
-  padding: var(--section-y) 0;
-  border-top: 1px solid var(--border);
-}
-.process__head {
-  display: grid;
-  gap: 16px;
-}
-.process__text {
-  max-width: 28rem;
-  color: var(--text-muted);
-}
-.process__steps {
-  --p: 0;
-  position: relative;
-  display: grid;
-  gap: 48px;
-  margin: clamp(48px, 7vw, 96px) 0 0;
-  padding: 0 0 0 32px;
-  list-style: none;
-}
-/* The track, and the red fill that grows with --p (0 to 1). Vertical on phones, horizontal from tablet up. */
-.process__steps::before,
-.process__steps::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 1px;
-  background: var(--border-strong);
-}
-.process__steps::after {
-  background: var(--red);
-  transform: scaleY(var(--p));
-  transform-origin: top;
-}
-.process__steps li {
-  /* 1 once the fill reaches this step's --at, fading in just before */
-  --reached: clamp(0, calc((var(--p) - var(--at)) * 12 + 1), 1);
-}
-.process__num {
-  display: block;
-  font-family: var(--font-display);
-  font-weight: 300;
-  font-size: clamp(48px, 6vw, 88px);
-  line-height: 1;
-  letter-spacing: -0.04em;
-  color: var(--red);
-  opacity: calc(0.2 + 0.8 * var(--reached));
-}
-.process__steps h3 {
-  margin: 20px 0 8px;
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: clamp(20px, 2vw, 26px);
-  letter-spacing: -0.02em;
-}
-.process__steps p {
-  max-width: 22rem;
-  color: var(--text-muted);
-}
-@media (min-width: 768px) {
-  .process__steps {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 32px;
-    padding: 40px 0 0;
-  }
-  .process__steps::before,
-  .process__steps::after {
-    right: 0;
-    bottom: auto;
-    width: auto;
-    height: 1px;
-  }
-  .process__steps::after {
-    transform: scaleX(var(--p));
-    transform-origin: left;
-  }
-}
-@media (min-width: 900px) {
-  .process__head {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    gap: 64px;
-    align-items: end;
-  }
-}
-
-/* Sign-off */
-.signoff {
-  padding: var(--section-y) 0;
-  border-top: 1px solid var(--border);
-}
-.signoff__by {
+.letter__by {
   display: flex;
   align-items: center;
   gap: 14px;
+  margin-top: clamp(40px, 6vw, 80px);
 }
-.signoff__by p {
+.letter__by p {
   display: flex;
   flex-direction: column;
   line-height: 1.35;
 }
-.signoff__by strong {
+.letter__by strong {
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 17px;
 }
-.signoff__by span {
+.letter__by span {
   font-size: 14px;
   color: var(--text-muted);
-}
-.signoff__title {
-  max-width: 14ch;
-  margin-top: clamp(32px, 5vw, 56px);
-  font-family: var(--font-display);
-  font-weight: 300;
-  /* Drops below 36px only on the narrowest phones, where "remembering." (about 7.6em) wouldn't fit. */
-  font-size: clamp(min(36px, (100vw - 2 * var(--gutter)) / 7.8), 5.4vw, 76px);
-  line-height: 1.04;
-  letter-spacing: -0.035em;
-  text-wrap: balance;
-}
-.signoff__foot {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 24px;
-  margin-top: clamp(32px, 5vw, 56px);
-}
-.signoff__note {
-  font-size: clamp(16px, 1.4vw, 19px);
-  color: var(--text-muted);
-}
-/* The long WhatsApp label wraps on the narrowest phones instead of running off the screen. */
-.signoff__foot .btn {
-  max-width: 100%;
-  white-space: normal;
-  text-align: center;
-  line-height: 1.25;
-}
-@media (min-width: 768px) {
-  .signoff__foot {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
 }
 
 /* ---------- Let's Connect page ---------- */
@@ -4425,9 +4182,6 @@ section[id] {
   .marquee__track,
   .details__next.is-ready svg {
     animation: none;
-  }
-  .process__steps {
-    --p: 1 !important;
   }
   *,
   *::before,

@@ -121,6 +121,12 @@ export const whyUs = {
   closing: 'Strategy, creative and performance under one crown.',
 }
 
+// The red ticker band on the homepage: every project name except `hide` (slugs), then `extra` as plain text.
+export const marquee = {
+  hide: ['ethik', 'my-natural-detox'],
+  extra: 'As seen on Shark Tank',
+}
+
 export const work = {
   label: 'Works we have done',
   heading: 'Every project solves a real challenge and drives measurable growth.',
@@ -134,7 +140,8 @@ export const work = {
 // services are all read off their reels, so confirm those three with the client too.
 // Reels can be square or portrait (9:16); cards crop portrait ones towards the top, where faces usually are.
 // Optional case-study fields (`challenge`, `approach`, `results`, `website`) show up in the
-// project popup as soon as they're filled in.
+// project popup as soon as they're filled in. `notes` adds a project-specific line under one of its services in
+// "What we delivered", keyed by the service tag.
 // Tapping the reel in the popup plays it full size. `fullVideo` is a copy with sound for that; without one the
 // muted `video` opens full size instead (Guugly Wuugly's master has no audio track).
 export type Project = {
@@ -150,6 +157,7 @@ export type Project = {
   approach?: string
   results?: string[]
   website?: string
+  notes?: Record<string, string>
 }
 
 export const projectsPage = {
@@ -164,8 +172,9 @@ export const projects: Project[] = [
     slug: 'glow-glossary',
     name: 'Glow Glossary',
     industry: 'Juices & smoothies',
-    summary: 'Creator collaborations, content curation and social media management.',
-    services: ['Influencer Marketing', 'Content Curation', 'SMM'],
+    summary: 'Performance marketing, creator collaborations, content curation and social media management.',
+    services: ['Performance Marketing', 'Influencer Marketing', 'Content Curation', 'SMM'],
+    notes: { 'Performance Marketing': 'Meta Ads, Google Ads and GPT Ads' },
     video: '/media/work-glow-glossary.mp4',
     poster: '/media/work-glow-glossary-poster.webp',
     fullVideo: '/media/work-glow-glossary-full.mp4',
@@ -174,8 +183,9 @@ export const projects: Project[] = [
     slug: 'guugly-wuugly',
     name: 'Guugly Wuugly',
     industry: 'Kidswear',
-    summary: 'Content curation and social media management.',
-    services: ['Content Curation', 'SMM'],
+    summary: 'Performance marketing, content curation and social media management.',
+    services: ['Performance Marketing', 'Content Curation', 'SMM'],
+    notes: { 'Performance Marketing': 'Meta Ads, Google Ads and GPT Ads' },
     video: '/media/work-guugly-wuugly.mp4',
     poster: '/media/work-guugly-wuugly-poster.webp',
   },
@@ -229,6 +239,11 @@ export const projects: Project[] = [
 
 // What each project tag means, shown under "What we delivered". `service` links to the Services page.
 export const deliverables: Record<string, { label: string; text: string; service?: string }> = {
+  'Performance Marketing': {
+    label: 'Performance Marketing',
+    text: 'Clicks that convert, strategy that scales: paid campaigns that move audiences from awareness to action.',
+    service: 'performance-marketing',
+  },
   Branding: {
     label: 'Branding',
     text: 'Identity engineered to last: tone, typography, colour and conversation built around who the brand is.',
@@ -260,7 +275,7 @@ export const deliverables: Record<string, { label: string; text: string; service
   },
 }
 
-// About page (/about/). First-person lines are draft copy for Aamir to review.
+// About page (/about/): the hero, then Aamir's letter to founders.
 export const about = {
   name: 'Aamir Hussain',
   initials: 'AH',
@@ -275,40 +290,26 @@ export const about = {
   hero: {
     left: ['Aamir', 'Hussain'],
     right: ['Founder,', 'MRKTKings'],
-    intro:
-      "Hi, I'm Aamir Hussain. I started MRKTKings to help D2C brands look sharp, sell harder and grow for real. Based in Bengaluru.",
+    // The letter's opening line.
+    intro: "Hey, I'm Aamir Hussain, Founder of MRKTKings, Bengaluru.",
   },
-  statement: {
-    belief: "I believe great marketing is felt before it's noticed.",
-    story:
-      'I started MRKTKings to turn ideas into brands people remember and products they come back for. From the first strategy call to the final campaign, every detail is intentional. I work with founders and D2C brands who care about craft.',
-  },
-  // Shown only once real numbers are added, e.g. { value: '40+', label: 'Projects delivered' }.
-  metrics: [] as { value: string; label: string }[],
-  whatIDo: {
-    heading: 'What I build',
-    text: 'From brand identity to performance campaigns, MRKTKings handles strategy, creative and growth end to end.',
-    // `service` is the slug of the matching section on the Services page.
-    items: [
-      { title: 'Brand Strategy', text: 'Identities and positioning that make D2C labels look like category leaders.', service: 'branding' },
-      { title: 'Performance', text: 'Paid campaigns built around return on ad spend, tested and scaled.', service: 'performance-marketing' },
-      { title: 'Content & Social', text: 'Reels, creators and community that keep brands alive online.', service: 'social-media-management' },
-      { title: 'Web & Retention', text: 'Stores that convert and flows that bring customers back.', service: 'ux-ui-web-development' },
-    ],
-  },
-  process: {
-    heading: 'Three steps. Zero friction.',
-    text: 'Clear communication and fast turnaround at every stage.',
-    steps: [
-      { title: 'Discover', text: 'We talk. Your brand, your numbers, your customer, and what is holding growth back.' },
-      { title: 'Create', text: 'We plan and create. Strategy, content and campaigns built around what we found.' },
-      { title: 'Scale', text: 'You grow. Budget goes behind what works, and you see the results clearly.' },
-    ],
-  },
-  signoff: {
-    heading: "Let's build something worth remembering.",
-    note: 'Open to new brands and collaborations.',
-  },
+  // The rest of the letter, in order. `pull` lines are set large, the others as body text.
+  letter: [
+    {
+      text: "Before I helped D2C brands scale, I tried building one myself. I've celebrated orders, stared at empty dashboards, and watched Meta and Google eat through my money like it was an unlimited buffet.",
+    },
+    { text: "Trust me, I've paid my tuition fees to the algorithm.", pull: true },
+    {
+      text: "Those failures taught me more than any marketing course ever could. Since then, I've worked on scaling D2C brands, learning what drives real growth and what just burns cash.",
+    },
+    {
+      text: "That's why at MRKTKings, we believe in fewer clients, bigger commitments, and relationships that outlast contracts. We'd rather grow with five brands we genuinely care about than chase fifty we barely know.",
+    },
+    {
+      text: "Because behind every ad account is a founder's hard-earned money, sleepless nights, and a dream worth protecting.",
+    },
+    { text: "I've been on your side of the dashboard. Now I'm here to make it look better.", pull: true },
+  ] as { text: string; pull?: boolean }[],
 }
 
 // Let's Connect page (/contact-us/). Step one collects the brief, step two books a discovery call.

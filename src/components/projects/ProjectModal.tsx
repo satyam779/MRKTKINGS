@@ -196,6 +196,7 @@ export function ProjectModal({ project, index, all, morph, onClose, onNavigate }
                   <ol className="deliverables">
                     {project.services.map((s, i) => {
                       const d = deliverables[s]
+                      const note = project.notes?.[s]
                       return (
                         <motion.li
                           key={s}
@@ -206,6 +207,7 @@ export function ProjectModal({ project, index, all, morph, onClose, onNavigate }
                           <span className="deliverables__num">{pad(i + 1)}</span>
                           <div>
                             <h4>{d?.label ?? s}</h4>
+                            {note && <p className="deliverables__note">{note}</p>}
                             {d && <p>{d.text}</p>}
                             {d?.service && (
                               <a href={`${links.services}#${d.service}`} className="deliverables__link">

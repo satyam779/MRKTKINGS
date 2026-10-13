@@ -3,18 +3,13 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import { Layout } from './components/Layout'
 import { AboutHero } from './components/about/AboutHero'
-import { Metrics, Process, Signoff, WhatIDo } from './components/about/AboutSections'
-import { Statement } from './components/about/Statement'
+import { Letter } from './components/about/Letter'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Layout cta={false}>
+    <Layout>
       <AboutHero />
-      <Statement />
-      <Metrics />
-      <WhatIDo />
-      <Process />
-      <Signoff />
+      <Letter />
     </Layout>
   </StrictMode>,
 )
